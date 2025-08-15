@@ -7,7 +7,8 @@ import {
   IsNumber,
   Min,
   Max,
-  Matches
+  Matches,
+  IsDateString
 } from 'class-validator';
 
 export class BranchDto {
@@ -49,12 +50,12 @@ export class BranchDto {
 
   @IsNotEmpty()
   @IsString()
-  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, { message: 'Invalid time value' })
+  @IsDateString()
   morningStartAt: string;
 
   @IsNotEmpty()
   @IsString()
-  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, { message: 'Invalid time value' })
+  @IsDateString()
   morningEndAt: string;
 
   @IsNotEmpty()
@@ -65,11 +66,11 @@ export class BranchDto {
 
   @IsNotEmpty()
   @IsString()
-  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, { message: 'Invalid time value' })
+  @IsDateString()
   afternoonStartAt: string;
 
   @IsNotEmpty()
   @IsString()
-  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, { message: 'Invalid time value' })
+  @IsDateString()
   afternoonEndAt: string;
 }

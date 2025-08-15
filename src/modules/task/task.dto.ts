@@ -5,7 +5,7 @@ import {
   IsOptional,
   Length,
   Min,
-  Max,
+  IsIn,
   IsBoolean,
   IsNumber
 } from 'class-validator';
@@ -25,8 +25,7 @@ export class TaskDto {
   @IsNumber()
   @IsInt()
   @IsNotEmpty()
-  @Min(0)
-  @Max(1)
+  @IsIn([0, 1])
   type: number;
 
   @IsOptional()

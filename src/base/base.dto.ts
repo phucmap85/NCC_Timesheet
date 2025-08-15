@@ -47,12 +47,12 @@ export class GetAllPaggingDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Type(() => Number) // Automatically transform string query param to number
-  skipCount?: number = 0; // Set a default value
+  @Type(() => Number)
+  skipCount?: number = 0;
 
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Type(() => Number) // Automatically transform string query param to number
-  maxResultCount?: number = 10; // Set a default value
+  @Type(() => Number)
+  maxResultCount?: number = 10;
 }

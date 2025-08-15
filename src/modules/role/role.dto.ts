@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsOptional, IsString, Length, IsNumber, IsInt } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 
 export class GetAllRolesDto {
   @IsOptional()
@@ -7,12 +7,10 @@ export class GetAllRolesDto {
   Keyword?: string = '';
 
   @IsOptional()
-  @Transform(({ value }) => value ? parseInt(value, 10) : 0)
   @Type(() => Number)
   SkipCount?: number = 0;
 
   @IsOptional()
-  @Transform(({ value }) => value ? parseInt(value, 10) : 10)
   @Type(() => Number)
   MaxResultCount?: number = 10;
 }
