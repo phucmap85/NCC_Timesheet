@@ -43,19 +43,19 @@ export class Project {
   komuChannelId: string;
 
   @Column({ type: 'boolean', default: false })
-  isNoticeKmSubmitTs: boolean;
+  isNoticeKMSubmitTS: boolean;
 
   @Column({ type: 'boolean', default: false })
-  isNoticeKmRequestOffDate: boolean;
+  isNoticeKMRequestOffDate: boolean;
 
   @Column({ type: 'boolean', default: false })
-  isNoticeKmApproveRequestOffDate: boolean;
+  isNoticeKMApproveRequestOffDate: boolean;
 
   @Column({ type: 'boolean', default: false })
-  isNoticeKmRequestChangeWorkingTime: boolean;
+  isNoticeKMRequestChangeWorkingTime: boolean;
 
   @Column({ type: 'boolean', default: false })
-  isNoticeKmApproveChangeWorkingTime: boolean;
+  isNoticeKMApproveChangeWorkingTime: boolean;
 
   @Column({ type: 'boolean', default: false })
   isAllUserBelongTo: boolean;

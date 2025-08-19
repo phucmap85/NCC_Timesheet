@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Client } from 'src/entities';
 import { BaseService } from 'src/base/base.service';
 
@@ -23,10 +23,21 @@ export class CustomerService extends BaseService<Client> {
 
   async getAllCustomers(): Promise<object | null> {
     const customers = await this.getAllPagging([], "", 0, 1e18);
+    return (customers && customers['items']) ? customers['items'] : null;
+  }
 
-    if (!customers || !customers['items']) return null;
+  // No use in controller
+  async getCustomerIdByName(name: string): Promise<number | null> {
+    const customer = await this.clientRepository.findOne({ 
+      where: { name: Like(`%${name}%`) } 
+    });
+    return customer ? customer.id : null;
+  }
 
-    return customers['items'];
+  // No use in controller
+  async getCustomerById(id: number): Promise<object | null> {
+    const customer = await this.clientRepository.findOne({ where: { id: id } });
+    return customer ? customer : null;
   }
 
   async createOrEditCustomer(

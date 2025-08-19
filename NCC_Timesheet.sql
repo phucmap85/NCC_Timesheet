@@ -116,11 +116,11 @@ CREATE TABLE `projects` (
   `notifyChannel` int DEFAULT 0,
   `mezonUrl` text,
   `komuChannelId` varchar(255),
-  `isNoticeKmSubmitTs` boolean DEFAULT false,
-  `isNoticeKmRequestOffDate` boolean DEFAULT false,
-  `isNoticeKmApproveRequestOffDate` boolean DEFAULT false,
-  `isNoticeKmRequestChangeWorkingTime` boolean DEFAULT false,
-  `isNoticeKmApproveChangeWorkingTime` boolean DEFAULT false,
+  `isNoticeKMSubmitTS` boolean DEFAULT false,
+  `isNoticeKMRequestOffDate` boolean DEFAULT false,
+  `isNoticeKMApproveRequestOffDate` boolean DEFAULT false,
+  `isNoticeKMRequestChangeWorkingTime` boolean DEFAULT false,
+  `isNoticeKMApproveChangeWorkingTime` boolean DEFAULT false,
   `isAllUserBelongTo` boolean DEFAULT false,
   `isAllowTeamBuilding` boolean DEFAULT false,
   `createdAt` timestamp DEFAULT (now()),
@@ -160,12 +160,13 @@ CREATE TABLE `project_users` (
 );
 
 CREATE TABLE `project_target_users` (
-  `projectId` int PRIMARY KEY,
   `userId` int NOT NULL,
+  `projectId` int NOT NULL,
   `roleName` text NOT NULL,
   `createdAt` timestamp DEFAULT (now()),
   `updatedAt` timestamp DEFAULT (now()),
-  `deletedAt` timestamp
+  `deletedAt` timestamp,
+  PRIMARY KEY (`userId`, `projectId`)
 );
 
 CREATE TABLE `timesheets` (

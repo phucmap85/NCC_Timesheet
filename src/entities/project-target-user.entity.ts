@@ -5,10 +5,10 @@ import { User } from './user.entity';
 @Entity('project_target_users')
 export class ProjectTargetUser {
   @PrimaryColumn()
-  projectId: number;
-
-  @Column()
   userId: number;
+
+  @PrimaryColumn()
+  projectId: number;
 
   @Column({ type: 'text' })
   roleName: string;

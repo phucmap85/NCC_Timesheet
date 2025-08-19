@@ -4,11 +4,10 @@ import {
   IsNotEmpty,
   IsOptional,
   Length,
-  Min,
-  Max,
   IsBoolean,
   IsNumber,
   IsArray,
+  IsIn,
   ValidateNested,
   IsDateString,
   IsUrl
@@ -19,14 +18,12 @@ export class ProjectUserDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @Min(1)
-  userId: number;
+  userId: number = 0;
 
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @Min(0)
-  @Max(4)
+  @IsIn([0, 1, 2, 3])
   type: number;
 
   @IsNotEmpty()
@@ -38,51 +35,51 @@ export class ProjectTaskDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @Min(1)
-  taskId: number;
+  taskId: number = 0;
 
   @IsNotEmpty()
   @IsBoolean()
-  billable: boolean;
+  billable: boolean = false;
 }
 
 export class ProjectTargetUserDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @Min(1)
-  userId: number;
+  userId: number = 0;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @IsInt()
-  @Min(0)
-  roleName: number;
+  @IsOptional()
+  @IsString()
+  @Length(0, 255)
+  roleName?: string;
 }
 
-export class CreateProjectDto {
-  @IsString()
+export class ProjectDto {
+  @IsOptional()
+  @IsNumber()
+  @IsInt()
+  id?: number = 0;
+
   @IsNotEmpty()
+  @IsString()
   @Length(1, 255)
   name: string;
 
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   @Length(1, 255)
   code: string;
 
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @Min(1)
   customerId: number;
 
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @Min(0)
-  @Max(4)
-  projectType: number;
+  @IsIn([0, 1, 2, 3, 4, 5, 6])
+  projectType: number = 1;
 
   @IsOptional()
   @IsString()
@@ -96,19 +93,17 @@ export class CreateProjectDto {
   @IsDateString()
   timeEnd?: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @Min(0)
-  @Max(1)
-  status?: number;
+  @IsIn([0, 1])
+  status: number = 0;
 
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @Min(0)
-  @Max(2)
-  notifyChannel: number;
+  @IsIn([0, 1, 2])
+  notifyChannel: number = 0;
 
   @IsOptional()
   @IsString()
@@ -121,174 +116,47 @@ export class CreateProjectDto {
   @Length(0, 255)
   komuChannelId?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsBoolean()
-  isNoticeKMSubmitTS: boolean;
+  isNoticeKMSubmitTS?: boolean = false;
+
+  @IsOptional()
+  @IsBoolean()
+  isNoticeKMRequestOffDate?: boolean = false;
+
+  @IsOptional()
+  @IsBoolean()
+  isNoticeKMApproveRequestOffDate?: boolean = false;
+
+  @IsOptional()
+  @IsBoolean()
+  isNoticeKMRequestChangeWorkingTime?: boolean = false;
+
+  @IsOptional()
+  @IsBoolean()
+  isNoticeKMApproveChangeWorkingTime?: boolean = false;
 
   @IsNotEmpty()
   @IsBoolean()
-  isNoticeKMRequestOffDate: boolean;
+  isAllUserBelongTo: boolean = false;
 
   @IsNotEmpty()
   @IsBoolean()
-  isNoticeKMApproveRequestOffDate: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  isNoticeKMRequestChangeWorkingTime: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  isNoticeKMApproveChangeWorkingTime: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  isAllUserBelongTo: boolean;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  isAllowTeamBuilding: boolean;
+  isAllowTeamBuilding: boolean = false;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProjectUserDto)
-  users: ProjectUserDto[];
+  users: ProjectUserDto[] = [];
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProjectTaskDto)
-  tasks: ProjectTaskDto[];
+  tasks: ProjectTaskDto[] = [];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProjectTargetUserDto)
-  projectTargetUsers?: ProjectTargetUserDto[];
-}
-
-export class UpdateProjectDto {
-  @IsOptional()
-  @IsString()
-  @Length(1, 255)
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(1, 255)
-  code?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @IsInt()
-  @Min(1)
-  customerId?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @IsInt()
-  @Min(0)
-  @Max(4)
-  projectType?: number;
-
-  @IsOptional()
-  @IsString()
-  note?: string;
-
-  @IsOptional()
-  @IsDateString()
-  timeStart?: string;
-
-  @IsOptional()
-  @IsDateString()
-  timeEnd?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @IsInt()
-  @Min(0)
-  @Max(1)
-  status?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @IsInt()
-  @Min(0)
-  @Max(2)
-  notifyChannel?: number;
-
-  @IsOptional()
-  @IsString()
-  @Length(0, 500)
-  mezonUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(0, 255)
-  komuChannelId?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isNoticeKMSubmitTS?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isNoticeKMRequestOffDate?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isNoticeKMApproveRequestOffDate?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isNoticeKMRequestChangeWorkingTime?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isNoticeKMApproveChangeWorkingTime?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isAllUserBelongTo?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isAllowTeamBuilding?: boolean;
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ProjectUserDto)
-  users?: ProjectUserDto[];
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ProjectTaskDto)
-  tasks?: ProjectTaskDto[];
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ProjectTargetUserDto)
-  projectTargetUsers?: ProjectTargetUserDto[];
-}
-
-export class ProjectDto extends CreateProjectDto {
-  @IsNotEmpty()
-  @IsNumber()
-  @IsInt()
-  @Min(1)
-  id: number;
-
-  @IsOptional()
-  @IsDateString()
-  createdAt?: string;
-
-  @IsOptional()
-  @IsDateString()
-  updatedAt?: string;
-
-  @IsOptional()
-  @IsDateString()
-  deletedAt?: string;
+  projectTargetUsers?: ProjectTargetUserDto[] = [];
 }
