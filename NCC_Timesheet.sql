@@ -77,7 +77,7 @@ CREATE TABLE `users` (
   `beginLevel` int,
   `salary` decimal(10,2),
   `salaryAt` date,
-  `allowLeaveDay` int DEFAULT 0,
+  `allowedLeaveDay` int DEFAULT 0,
   `isActive` boolean DEFAULT true,
   `startDateAt` date,
   `endDateAt` date,
@@ -88,6 +88,7 @@ CREATE TABLE `users` (
   `afternoonWorking` float,
   `afternoonStartAt` time,
   `afternoonEndAt` time,
+  `creationTime` timestamp DEFAULT (now()),
   `createdAt` timestamp DEFAULT (now()),
   `updatedAt` timestamp DEFAULT (now()),
   `deletedAt` timestamp
