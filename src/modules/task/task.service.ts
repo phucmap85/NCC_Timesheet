@@ -1,10 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { TaskRepository } from 'src/common/repositories/task.repository';
 import { Task } from 'src/common/database/entities';
+import { RepositoryManager } from 'src/common/repositories';
 
 @Injectable()
 export class TaskService {
-  constructor(private readonly taskRepository: TaskRepository) {}
+  constructor(private readonly repositories: RepositoryManager) {}
 
   async getAllPagging(
     filterItems: any[], 
@@ -12,7 +12,7 @@ export class TaskService {
     skipCount: number, 
     maxResultCount: number
   ): Promise<object | null> {
-    const res = await this.taskRepository.getAllPaging(
+    const res = await this.repositories.task.getAllPaging(
       filterItems, searchText, skipCount, maxResultCount,
       ["name"],
       "id", "ASC"
@@ -27,21 +27,21 @@ export class TaskService {
     try {
       // Create new task
       if(id === 0) {
-        const existingName = await this.taskRepository.getTaskByName(name);
+        const existingName = await this.repositories.task.getTaskByName(name);
         if (existingName) {
           throw new Error(`Task with name ${name} already exists`);
         }
         
         const newTask = { name: name, type: type, isDeleted: isDeleted } as Task;
-        return await this.taskRepository.saveTask(newTask);
+        return await this.repositories.task.saveTask(newTask);
       }
 
       // Update existing task
-      let task = await this.taskRepository.getTaskById(id);
+      let task = await this.repositories.task.getTaskById(id);
       if (!task) throw new Error("Task not found");
       
       if(name !== task.name) {
-        const existingName = await this.taskRepository.getTaskByName(name);
+        const existingName = await this.repositories.task.getTaskByName(name);
         if (existingName && existingName.id !== id) {
           throw new Error(`Task with name ${name} already exists`);
         }
@@ -51,7 +51,7 @@ export class TaskService {
       task.type = type;
       task.isDeleted = isDeleted;
       
-      return await this.taskRepository.saveTask(task);
+      return await this.repositories.task.saveTask(task);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -59,14 +59,14 @@ export class TaskService {
 
   async changeDeleteStatus(id: number): Promise<void> {
     try {
-      const task = await this.taskRepository.getTaskById(id);
+      const task = await this.repositories.task.getTaskById(id);
       if (!task) throw new Error(`Task not found`);
 
       if(task.isDeleted) {
         try {
           task.isDeleted = false;
 
-          await this.taskRepository.saveTask(task);
+          await this.repositories.task.saveTask(task);
         } catch (error) {
           throw new Error(`Error restoring task ID ${id}`);
         }
@@ -74,11 +74,11 @@ export class TaskService {
         try {
           let temp = { ...task };
 
-          await this.taskRepository.removeTask(task);
+          await this.repositories.task.removeTask(task);
 
           temp.isDeleted = true;
 
-          await this.taskRepository.saveTask(temp);
+          await this.repositories.task.saveTask(temp);
         } catch (error) {
           throw new Error(`This task ID ${id} is in a project, cannot be archived`);
         }
@@ -90,11 +90,11 @@ export class TaskService {
 
   async deleteTask(id: number): Promise<void> {
     try {
-      const task = await this.taskRepository.getTaskById(id);
+      const task = await this.repositories.task.getTaskById(id);
       if (!task) throw new Error(`Task not found`);
 
       try {
-        return await this.taskRepository.removeTask(task);
+        return await this.repositories.task.removeTask(task);
       } catch (error) {
         throw new Error(`Task ID ${id} is being used, cannot be deleted`);
       }      

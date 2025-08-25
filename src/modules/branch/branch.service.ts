@@ -1,11 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { BranchRepository } from 'src/common/repositories/branch.repository';
+import { RepositoryManager } from 'src/common/repositories';
 import { validateWorkingHours } from 'src/common/utils/validators/working-hours.validator';
 import { Branch } from 'src/common/database/entities';
 
 @Injectable()
 export class BranchService {
-  constructor(private readonly branchRepository: BranchRepository) {}
+  constructor(private readonly repositories: RepositoryManager) {}
 
   async getAllPagging(
     filterItems: any[], 
@@ -13,7 +13,7 @@ export class BranchService {
     skipCount: number, 
     maxResultCount: number
   ): Promise<object | null> {
-    return this.branchRepository.getAllPaging(
+    return this.repositories.branch.getAllPaging(
       filterItems, searchText, skipCount, maxResultCount, 
       ["name", "displayName", "code"], 
       "id", "ASC"
@@ -59,15 +59,15 @@ export class BranchService {
 
       // Create new branch
       if(id === 0) {
-        const existingName = await this.branchRepository.getBranchByName(name);
+        const existingName = await this.repositories.branch.getBranchByName(name);
         if (existingName) {
           throw new Error(`Branch with name ${name} already exists`);
         }
-        const existingDisplayName = await this.branchRepository.getBranchByDisplayName(displayName);
+        const existingDisplayName = await this.repositories.branch.getBranchByDisplayName(displayName);
         if (existingDisplayName) {
           throw new Error(`Branch with display name ${displayName} already exists`);
         }
-        const existingCode = await this.branchRepository.getBranchByCode(code);
+        const existingCode = await this.repositories.branch.getBranchByCode(code);
         if (existingCode) {
           throw new Error(`Branch with code ${code} already exists`);
         }
@@ -85,29 +85,29 @@ export class BranchService {
           afternoonEndAt: afternoonEndAt
         } as Branch;
 
-        return await this.branchRepository.saveBranch(newBranch);
+        return await this.repositories.branch.saveBranch(newBranch);
       }
 
       // Update existing branch
-      let branch = await this.branchRepository.getBranchById(id);
+      let branch = await this.repositories.branch.getBranchById(id);
       if (!branch) throw new Error("Branch not found");
       
       if(name !== branch.name) {
-        const existingName = await this.branchRepository.getBranchByName(name);
+        const existingName = await this.repositories.branch.getBranchByName(name);
         if (existingName && existingName.id !== id) {
           throw new Error(`Branch with name ${name} already exists`);
         }
       }
 
       if(displayName !== branch.displayName) {
-        const existingDisplayName = await this.branchRepository.getBranchByDisplayName(displayName);
+        const existingDisplayName = await this.repositories.branch.getBranchByDisplayName(displayName);
         if (existingDisplayName && existingDisplayName.id !== id) {
           throw new Error(`Branch with display name ${displayName} already exists`);
         }
       }
 
       if(code !== branch.code) {
-        const existingCode = await this.branchRepository.getBranchByCode(code);
+        const existingCode = await this.repositories.branch.getBranchByCode(code);
         if (existingCode && existingCode.id !== id) {
           throw new Error(`Branch with code ${code} already exists`);
         }
@@ -124,7 +124,7 @@ export class BranchService {
       branch.afternoonStartAt = afternoonStartAt;
       branch.afternoonEndAt = afternoonEndAt;
       
-      return await this.branchRepository.saveBranch(branch);
+      return await this.repositories.branch.saveBranch(branch);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -132,11 +132,11 @@ export class BranchService {
 
   async deleteBranch(id: number) {
     try {
-      const branch = await this.branchRepository.getBranchById(id);
+      const branch = await this.repositories.branch.getBranchById(id);
       if (!branch) throw new Error(`Branch not found`);
 
       try {
-        await this.branchRepository.removeBranch(branch);
+        await this.repositories.branch.removeBranch(branch);
       } catch (error) {
         throw new Error(`Branch ID ${id} has users assigned, cannot be deleted`);
       }

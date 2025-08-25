@@ -1,32 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import { UserRole, RolePermission } from 'src/common/database/entities';
+import { In } from 'typeorm';
+import { RepositoryManager } from 'src/common/repositories';
 import { AbpUserConfiguration } from 'src/common/constants/default_config';
 
 @Injectable()
 export class AppService {
-  constructor(
-    @InjectRepository(UserRole) private userRoleRepository: Repository<UserRole>,
-    @InjectRepository(RolePermission) private rolePermissionRepository: Repository<RolePermission>,
-  ) {}
+  constructor(private readonly repositories: RepositoryManager) {}
   async getUserConfiguration(user: object): Promise<object | null> {
     try {
-      const userRoles = await this.userRoleRepository.find({ where: { userId: user['id'] }});
+      const userRoles = await this.repositories.userRole.findAll({ where: { userId: user['id'] }});
     
       const roleIds = userRoles.map(userRole => userRole.roleId);
       
-      const rolePermissions = await this.rolePermissionRepository.find({ 
+      const rolePermissions = await this.repositories.rolePermission.findAll({ 
         where: { roleId: In(roleIds) }
       });
       
       // Extract unique permission keys from role permissions
       const permissionKeys = [...new Set(rolePermissions.map(rp => rp.permissionKey))];
       
-      const permissions = {};
-      permissionKeys.forEach(key => {
-        permissions[key] = true;
-      });
+      const permissions: Record<string, boolean> = {};
+      permissionKeys.forEach(key => { permissions[key] = true });
       
       return {
         ...AbpUserConfiguration,

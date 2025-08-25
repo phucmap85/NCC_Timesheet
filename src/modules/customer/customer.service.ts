@@ -1,10 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { ClientRepository } from 'src/common/repositories/customer.repository';
 import { Client } from 'src/common/database/entities';
+import { RepositoryManager } from 'src/common/repositories';
 
 @Injectable()
 export class CustomerService {
-  constructor(private readonly clientRepository: ClientRepository) {}
+  constructor(private readonly repositories: RepositoryManager) {}
 
   async getAllPagging(
     filterItems: any[], 
@@ -12,7 +12,7 @@ export class CustomerService {
     skipCount: number, 
     maxResultCount: number
   ): Promise<object | null> {
-    return this.clientRepository.getAllPaging(
+    return this.repositories.client.getAllPaging(
       filterItems, searchText, skipCount, maxResultCount, 
       ["name", "code", "address"]
     );
@@ -29,32 +29,32 @@ export class CustomerService {
     try {
       // Create new customer
       if(id === 0) {
-        const existingName = await this.clientRepository.getCustomerByName(name);
+        const existingName = await this.repositories.client.getCustomerByName(name);
         if (existingName) {
           throw new Error(`Customer with name ${name} already exists`);
         }
-        const existingCode = await this.clientRepository.getCustomerByCode(code);
+        const existingCode = await this.repositories.client.getCustomerByCode(code);
         if (existingCode) {
           throw new Error(`Customer with code ${code} already exists`);
         }
         
         const newClient = { name: name, code: code, address: address } as Client;
-        return await this.clientRepository.saveCustomer(newClient);
+        return await this.repositories.client.saveCustomer(newClient);
       }
 
       // Update existing customer
-      let client = await this.clientRepository.getCustomerById(id);
+      let client = await this.repositories.client.getCustomerById(id);
       if (!client) throw new Error("Customer not found");
       
       if(name !== client.name) {
-        const existingName = await this.clientRepository.getCustomerByName(name);
+        const existingName = await this.repositories.client.getCustomerByName(name);
         if (existingName && existingName.id !== id) {
           throw new Error(`Customer with name ${name} already exists`);
         }
       }
 
       if(code !== client.code) {
-        const existingCode = await this.clientRepository.getCustomerByCode(code);
+        const existingCode = await this.repositories.client.getCustomerByCode(code);
         if (existingCode && existingCode.id !== id) {
           throw new Error(`Customer with code ${code} already exists`);
         }
@@ -64,7 +64,7 @@ export class CustomerService {
       client.code = code;
       client.address = address;
       
-      return await this.clientRepository.saveCustomer(client);
+      return await this.repositories.client.saveCustomer(client);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -72,11 +72,11 @@ export class CustomerService {
 
   async deleteCustomer(id: number): Promise<void> {
     try {
-      const client = await this.clientRepository.getCustomerById(id);
+      const client = await this.repositories.client.getCustomerById(id);
       if (!client) throw new Error(`Customer not found`);
 
       try {
-        return await this.clientRepository.removeCustomer(client);
+        return await this.repositories.client.removeCustomer(client);
       } catch (error) {
         throw new Error(`Customer ID ${id} has projects, cannot be deleted`);
       }

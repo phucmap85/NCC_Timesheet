@@ -12,7 +12,7 @@ import {
   UseInterceptors,
   ParseIntPipe,
   BadRequestException,
-  ParseFilePipe,
+  ParseFilePipe
 } from '@nestjs/common';
 import type { Express, Request as ExpressRequest } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -94,7 +94,7 @@ export class UserController {
       filename: (req, file, cb) => {
         const randomName = Math.random().toString(36).substring(2, 15) + Date.now();
         cb(null, `${randomName}${extname(file.originalname)}`);
-      },
+      }
     }),
     fileFilter: (req, file, cb) => {
       if (!file.originalname.match(/\.(bmp|tif|jfif|pjp|png|jpeg|heif|ico|tiff|webp|svg|jpg|heic|gif|pjpeg|avif)$/i)) {
@@ -118,7 +118,7 @@ export class UserController {
       filename: (req, file, cb) => {
         const randomName = Math.random().toString(36).substring(2, 15) + Date.now();
         cb(null, `${randomName}${extname(file.originalname)}`);
-      },
+      }
     }),
     fileFilter: (req, file, cb) => {
       if (!file.originalname.match(/\.(bmp|tif|jfif|pjp|png|jpeg|heif|ico|tiff|webp|svg|jpg|heic|gif|pjpeg|avif)$/i)) {
@@ -142,7 +142,7 @@ export class UserController {
       filename: (req, file, cb) => {
         const randomName = Math.random().toString(36).substring(2, 15) + Date.now();
         cb(null, `${randomName}${extname(file.originalname)}`);
-      },
+      }
     }),
     fileFilter: (req, file, cb) => {
       if (!file.originalname.match(/\.(xlsx|xls|csv|ods)$/i)) {

@@ -9,14 +9,7 @@ import {
 } from 'src/modules/user/user.dto';
 import { validateWorkingHours } from 'src/common/utils/validators/working-hours.validator';
 import { convertExcelTimeToString } from 'src/common/utils/converters/excel-time.converter';
-import { 
-  UserRepository, 
-  UserRoleRepository, 
-  ProjectUserRepository,
-  BranchRepository,
-  PositionRepository,
-  RoleRepository
-} from 'src/common/repositories';
+import { RepositoryManager } from 'src/common/repositories';
 import { app } from 'src/main';
 import * as bcrypt from 'bcrypt';
 import * as xlsx from 'xlsx';
@@ -24,14 +17,7 @@ import * as fs from 'fs/promises';
 
 @Injectable()
 export class UserService {
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly userRoleRepository: UserRoleRepository,
-    private readonly projectUserRepository: ProjectUserRepository,
-    private readonly branchRepository: BranchRepository,
-    private readonly positionRepository: PositionRepository,
-    private readonly roleRepository: RoleRepository
-  ) {}
+  constructor(private readonly repositories: RepositoryManager) {}
 
   async getAllPagging(
     filterItems: any[], 
@@ -40,7 +26,7 @@ export class UserService {
     maxResultCount: number
   ): Promise<object | null> {
     try {
-      const users = await this.userRepository.getAllPaging(
+      const users = await this.repositories.user.getAllPaging(
         filterItems, 
         searchText, 
         skipCount, 
@@ -54,17 +40,17 @@ export class UserService {
         // Get manager, position, branch, roles, and projects
         const manager = user.managerId ? await this.getUserById(user.managerId) as User : null;
 
-        const position = await this.positionRepository.getPositionById(user.positionId);
-        const branch = await this.branchRepository.getBranchById(user.branchId);
+        const position = await this.repositories.position.getPositionById(user.positionId);
+        const branch = await this.repositories.branch.getBranchById(user.branchId);
         
-        const roles = await this.userRoleRepository.findAll({ where: { userId: user.id }, relations: ['role'] });
+        const roles = await this.repositories.userRole.findAll({ where: { userId: user.id }, relations: ['role'] });
         const roleNames = roles.map((userRole: UserRole) => userRole.role.name);
 
-        const project = await this.projectUserRepository.findAll({ where: { userId: user.id }, relations: ['project'] });
+        const project = await this.repositories.projectUser.findAll({ where: { userId: user.id }, relations: ['project'] });
         const projectIds = project.map((projectUser: ProjectUser) => projectUser.project.id);
 
         const pmsId = await Promise.all(projectIds.map(async (projectId: number) => {
-          return await this.projectUserRepository.findAll({
+          return await this.repositories.projectUser.findAll({
             where: { projectId: projectId, type: 1 },
             relations: ['user']
           });
@@ -92,10 +78,10 @@ export class UserService {
             "projectId": projectUser.project.id,
             "projectName": projectUser.project.name,
             "projectCode": projectUser.project.code,
-            "projectUserType": projectUser.type,
+            "projectUserType": projectUser.type
           })) : [],
 
-          "userCode": null,
+          "userCode": null
         };
       }));
 
@@ -109,17 +95,17 @@ export class UserService {
 
   async getUserById(id: number): Promise<User | object | null> {
     try {
-      const user = await this.userRepository.getUserById(id);
+      const user = await this.repositories.user.getUserById(id);
       if (!user) return null;
       
       // Get roles
-      const roles = await this.userRoleRepository.findAll({ where: { userId: user.id }, relations: ['role'] });
+      const roles = await this.repositories.userRole.findAll({ where: { userId: user.id }, relations: ['role'] });
       const roleNames = roles.map((userRole: UserRole) => userRole.role.name);
       
       return {
         ...user,
         "password": undefined, // Remove password
-        "roleNames": roleNames.length > 0 ? roleNames : [],
+        "roleNames": roleNames.length > 0 ? roleNames : []
       };
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -134,7 +120,7 @@ export class UserService {
   async getAllManager(): Promise<object | null> {
     try {
       // Get all users with their basic info
-      const allUsers = await this.userRepository.findAll();
+      const allUsers = await this.repositories.user.findAll();
       
       // Get unique manager IDs
       const managerIds = new Set<number>(
@@ -148,8 +134,8 @@ export class UserService {
         allUsers
           .filter((user: User) => managerIds.has(user.id))
           .map(async (user: User) => {
-            const position = await this.positionRepository.getPositionById(user.positionId);
-            const branch = await this.branchRepository.getBranchById(user.branchId);
+            const position = await this.repositories.position.getPositionById(user.positionId);
+            const branch = await this.repositories.branch.getBranchById(user.branchId);
             
             return {
               ...user,
@@ -169,7 +155,7 @@ export class UserService {
 
   async getRoles(): Promise<object | null> {
     try {
-      return await this.roleRepository.getAllPaging([], "", 0, 1e18);
+      return await this.repositories.role.getAllPaging([], "", 0, 1e18);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -177,13 +163,12 @@ export class UserService {
 
   async getUserAvatarById(id: number): Promise<object | null> {
     try {
-      const user = await this.userRepository.getUserById(id);
+      const user = await this.repositories.user.getUserById(id);
       if (!user) throw new Error(`User with ID ${id} does not exist`);
 
       return {
         avatarPath: user.avatarPath,
-        avatarFullPath: user.avatarFullPath,
-      };
+        avatarFullPath: user.avatarFullPath};
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -191,7 +176,7 @@ export class UserService {
 
   async getUserEmailById(id: number): Promise<string | null> {
     try {
-      const user = await this.userRepository.getUserById(id);
+      const user = await this.repositories.user.getUserById(id);
       if (!user) throw new Error(`User with ID ${id} does not exist`);
 
       return user.emailAddress;
@@ -210,14 +195,14 @@ export class UserService {
       }
       
       // Check if role exists
-      const roleData = await this.roleRepository.getRoleByName(role) as any;
+      const roleData = await this.repositories.role.getRoleByName(role) as any;
 
       // Check if user_role already exists
-      const existingUserRole = await this.userRoleRepository.findOne({ where: { userId: userId, roleId: roleData['id'] } });
+      const existingUserRole = await this.repositories.userRole.findOne({ where: { userId: userId, roleId: roleData['id'] } });
       if (existingUserRole) {
-        await this.userRoleRepository.remove(existingUserRole);
+        await this.repositories.userRole.remove(existingUserRole);
       } else {
-        await this.userRoleRepository.save({ userId: userId, roleId: roleData['id'] });
+        await this.repositories.userRole.save({ userId: userId, roleId: roleData['id'] });
       }
 
       return null;
@@ -237,19 +222,19 @@ export class UserService {
       
       // Check if role exists
       for (const role of roleNames) {
-        if (!await this.roleRepository.getRoleByNormalizedName(role)) {
+        if (!await this.repositories.role.getRoleByNormalizedName(role)) {
           throw new Error(`Role ${role} does not exist`);
         }
       }
 
       const roleIdsNoFilter = await Promise.all(roleNames.map(async (roleName: string) => {
-        const role = await this.roleRepository.getRoleByNormalizedName(roleName);
+        const role = await this.repositories.role.getRoleByNormalizedName(roleName);
         return role ? role.id : null;
       }));
 
       const roleIds = roleIdsNoFilter.filter((id, index) => id !== null && roleIdsNoFilter.indexOf(id) === index) as number[];
 
-      return await this.userRoleRepository.updateUserRoles(id, roleIds);
+      return await this.repositories.userRole.updateUserRoles(id, roleIds);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -257,7 +242,7 @@ export class UserService {
 
   async updateAvatar(id: number, file: Express.Multer.File): Promise<string | null> {
     try {
-      const user = await this.userRepository.getUserById(id);
+      const user = await this.repositories.user.getUserById(id);
       if (!user) throw new Error(`User with ID ${id} does not exist`);
 
       // Delete old avatar if it exists
@@ -274,7 +259,7 @@ export class UserService {
       user.avatarPath = file.path.replace(/\\/g, '/');
       user.avatarFullPath = `${baseUrl}/${file.path.replace(/\\/g, '/')}`;
 
-      await this.userRepository.saveUser(user);
+      await this.repositories.user.saveUser(user);
       return user.avatarFullPath;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -299,7 +284,7 @@ export class UserService {
       else {
         // Validate data
         for (const item of data) {
-          const user = await this.userRepository.getUserByUsernameOrEmail(item['username/email']);
+          const user = await this.repositories.user.getUserByUsernameOrEmail(item['username/email']);
           if (!user || !item['username/email']) {
             throw new Error(`User with username/email ${item['username/email']} does not exist`);
           }
@@ -344,7 +329,7 @@ export class UserService {
 
         // Update working time for each user
         for (const item of data) {
-          const user = await this.userRepository.getUserByUsernameOrEmail(item['username/email']) as any;
+          const user = await this.repositories.user.getUserByUsernameOrEmail(item['username/email']) as any;
 
           const morningStartAt = convertExcelTimeToString(item.morningStartAt);
           const morningEndAt = convertExcelTimeToString(item.morningEndAt);
@@ -363,7 +348,7 @@ export class UserService {
           user.afternoonStartAt = afternoonStartAt;
           user.afternoonEndAt = afternoonEndAt;
 
-          await this.userRepository.save(user);
+          await this.repositories.user.save(user);
         }
       }
 
@@ -377,11 +362,11 @@ export class UserService {
     try {
       const { userId, newPassword } = resetPassword;
 
-      const user = await this.userRepository.getUserById(userId);
+      const user = await this.repositories.user.getUserById(userId);
       if (!user) throw new Error(`User with ID ${userId} does not exist`);
 
       user.password = await bcrypt.hash(newPassword, 12);
-      await this.userRepository.saveUser(user);
+      await this.repositories.user.saveUser(user);
 
       return true;
     } catch (error) {
@@ -412,27 +397,27 @@ export class UserService {
         roleNames
       } = createUser;
 
-      if (await this.userRepository.getUserByUsername(userName)) {
+      if (await this.repositories.user.getUserByUsername(userName)) {
         throw new Error(`Username ${userName} is already taken`);
       }
-      if (await this.userRepository.getUserByEmail(emailAddress)) {
+      if (await this.repositories.user.getUserByEmail(emailAddress)) {
         throw new Error(`Email address ${emailAddress} is already taken`);
       }
-      if (await this.userRepository.getUserByPhoneNumber(phoneNumber)) {
+      if (await this.repositories.user.getUserByPhoneNumber(phoneNumber)) {
         throw new Error(`Phone number ${phoneNumber} is already taken`);
       }
-      if (managerId && !await this.userRepository.getUserById(managerId)) {
+      if (managerId && !await this.repositories.user.getUserById(managerId)) {
         throw new Error(`Manager with ID ${managerId} does not exist`);
       }
-      if (positionId && !await this.positionRepository.getPositionById(positionId)) {
+      if (positionId && !await this.repositories.position.getPositionById(positionId)) {
         throw new Error(`Position with ID ${positionId} does not exist`);
       }
-      if (branchId && !await this.branchRepository.getBranchById(branchId)) {
+      if (branchId && !await this.repositories.branch.getBranchById(branchId)) {
         throw new Error(`Branch with ID ${branchId} does not exist`);
       }
       if (roleNames && roleNames.length > 0) {
         for (const roleName of roleNames) {
-          if (!await this.roleRepository.getRoleByNormalizedName(roleName)) {
+          if (!await this.repositories.role.getRoleByNormalizedName(roleName)) {
             throw new Error(`Role ${roleName} does not exist`);
           }
         }
@@ -450,7 +435,7 @@ export class UserService {
       }
       else {
         if (!branchId) throw new Error('Please provide branchId to set default working time');
-        const branch = await this.branchRepository.getBranchById(branchId);
+        const branch = await this.repositories.branch.getBranchById(branchId);
         if (!branch) throw new Error(`Branch with ID ${branchId} does not exist`);
 
         createUser.morningWorking = branch.morningWorking;
@@ -464,7 +449,7 @@ export class UserService {
       createUser.fullName = `${name} ${surname}`;
       createUser.password = await bcrypt.hash(password, 12);
 
-      return await this.userRepository.saveUser(createUser as any);
+      return await this.repositories.user.saveUser(createUser as any);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -494,46 +479,46 @@ export class UserService {
         roleNames
       } = updateUser;
 
-      const user = await this.userRepository.getUserById(id);
+      const user = await this.repositories.user.getUserById(id);
       if (!user) throw new Error(`User with ID ${id} does not exist`);
 
       if (userName && userName !== user.userName) {
-        if (await this.userRepository.getUserByUsername(userName)) {
+        if (await this.repositories.user.getUserByUsername(userName)) {
           throw new Error(`Username ${userName} is already taken`);
         }
         user.userName = userName;
       }
 
       if (emailAddress && emailAddress !== user.emailAddress) {
-        if (await this.userRepository.getUserByEmail(emailAddress)) {
+        if (await this.repositories.user.getUserByEmail(emailAddress)) {
           throw new Error(`Email address ${emailAddress} is already taken`);
         }
         user.emailAddress = emailAddress;
       }
 
       if (phoneNumber && phoneNumber !== user.phoneNumber) {
-        if (await this.userRepository.getUserByPhoneNumber(phoneNumber)) {
+        if (await this.repositories.user.getUserByPhoneNumber(phoneNumber)) {
           throw new Error(`Phone number ${phoneNumber} is already taken`);
         }
         user.phoneNumber = phoneNumber;
       }
 
       if (managerId && managerId !== user.managerId) {
-        if (!await this.userRepository.getUserById(managerId)) {
+        if (!await this.repositories.user.getUserById(managerId)) {
           throw new Error(`Manager with ID ${managerId} does not exist`);
         }
         user.managerId = managerId;
       }
 
       if (positionId && positionId !== user.positionId) {
-        if (!await this.positionRepository.getPositionById(positionId)) {
+        if (!await this.repositories.position.getPositionById(positionId)) {
           throw new Error(`Position with ID ${positionId} does not exist`);
         }
         user.positionId = positionId;
       }
 
       if (branchId && branchId !== user.branchId) {
-        if (!await this.branchRepository.getBranchById(branchId)) {
+        if (!await this.repositories.branch.getBranchById(branchId)) {
           throw new Error(`Branch with ID ${branchId} does not exist`);
         }
         user.branchId = branchId;
@@ -541,7 +526,7 @@ export class UserService {
 
       if (roleNames && roleNames.length > 0) {
         for (const roleName of roleNames) {
-          if (!await this.roleRepository.getRoleByNormalizedName(roleName)) {
+          if (!await this.repositories.role.getRoleByNormalizedName(roleName)) {
             throw new Error(`Role ${roleName} does not exist`);
           }
         }
@@ -568,7 +553,7 @@ export class UserService {
           const effectiveBranchId = branchId || user.branchId;
           if (!effectiveBranchId) throw new Error('Please provide branchId to set default working time');
           
-          const branch = await this.branchRepository.getBranchById(effectiveBranchId);
+          const branch = await this.repositories.branch.getBranchById(effectiveBranchId);
           if (!branch) throw new Error(`Branch with ID ${effectiveBranchId} does not exist`);
 
           user.isWorkingTimeDefault = true;
@@ -599,7 +584,7 @@ export class UserService {
       if (updateUser.startDateAt) user.startDateAt = new Date(updateUser.startDateAt);
       if (updateUser.endDateAt) user.endDateAt = new Date(updateUser.endDateAt);
 
-      return await this.userRepository.saveUser(user);
+      return await this.repositories.user.saveUser(user);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -607,14 +592,14 @@ export class UserService {
 
   async activeUser(userId: number): Promise<object | null> {
     try {
-      const user = await this.userRepository.getUserById(userId);
+      const user = await this.repositories.user.getUserById(userId);
       if (!user) throw new Error(`User with ID ${userId} does not exist`);
 
       // Check if user is already active
       if (user.isActive) throw new Error(`User with ID ${userId} is already active`);
 
       user.isActive = true;
-      await this.userRepository.saveUser(user);
+      await this.repositories.user.saveUser(user);
 
       return null;
     } catch (error) {
@@ -624,7 +609,7 @@ export class UserService {
 
   async deactiveUser(userId: number): Promise<object | null> {
     try {
-      const user = await this.userRepository.findOne({ where: { id: userId }, relations: ['subordinates', 'projectUsers', 'projectTargetUsers'] });
+      const user = await this.repositories.user.findOne({ where: { id: userId }, relations: ['subordinates', 'projectUsers', 'projectTargetUsers'] });
       if (!user) throw new Error(`User with ID ${userId} does not exist`);
 
       // Check if user is already deactivated
@@ -641,7 +626,7 @@ export class UserService {
       }
 
       user.isActive = false;
-      await this.userRepository.saveUser(user);
+      await this.repositories.user.saveUser(user);
 
       return null;
     } catch (error) {
@@ -651,7 +636,7 @@ export class UserService {
 
   async deleteUser(id: number): Promise<void> {
     try {
-      const user = await this.userRepository.findOne({ where: { id: id }, relations: ['subordinates', 'projectUsers', 'projectTargetUsers'] }) as User;
+      const user = await this.repositories.user.findOne({ where: { id: id }, relations: ['subordinates', 'projectUsers', 'projectTargetUsers'] }) as User;
       if (!user) throw new Error(`User with ID ${id} does not exist`);
 
       // Check if user is a manager of other users
@@ -664,7 +649,7 @@ export class UserService {
         throw new Error(`Cannot delete user with ID ${id} because they are assigned to projects`);
       }
 
-      return await this.userRepository.removeUser(user);
+      return await this.repositories.user.removeUser(user);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
