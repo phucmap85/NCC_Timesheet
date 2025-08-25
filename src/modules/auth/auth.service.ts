@@ -1,19 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { LoginDto } from 'src/modules/auth/login.dto';
-import { UserService } from 'src/modules/user/user.service';
+import { UserRepository } from 'src/common/repositories';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private userService: UserService,
-    private jwtService: JwtService
-  ) {}
+  constructor(private userRepository: UserRepository, private jwtService: JwtService) {}
 
   async authenticate(loginDto: LoginDto): Promise<object | null> {
     try {
-      const user = await this.userService.getUserByUsernameOrEmail(loginDto.userNameOrEmailAddress);
+      const user = await this.userRepository.getUserByUsernameOrEmail(loginDto.userNameOrEmailAddress);
       if (!user) throw new Error('Invalid username/email or password');
 
       const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);

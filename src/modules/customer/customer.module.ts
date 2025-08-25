@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CustomerController } from './customer.controller';
-import { CustomerService } from './customer.service';
-import { Client } from 'src/entities';
+import { CustomerController } from 'src/modules/customer/customer.controller';
+import { CustomerService } from 'src/modules/customer/customer.service';
+import { Client } from 'src/common/database/entities';
+import { ClientRepository } from 'src/common/repositories/customer.repository';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Client])],
-  providers: [CustomerService],
   controllers: [CustomerController],
-  exports: [CustomerService],
+  providers: [CustomerService, ClientRepository],
 })
 export class CustomerModule {}

@@ -1,11 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserService } from 'src/modules/user/user.service';
+import { UserRepository } from 'src/common/repositories';
 
 @Injectable()
 export class SessionService {
-  constructor(private jwtService: JwtService,
-              private userService: UserService) {}
+  constructor(private jwtService: JwtService, private userRepository: UserRepository) {}
 
   async getCurrentLoginInformations(header: object): Promise<object> {
     let response: object = {
@@ -29,10 +28,10 @@ export class SessionService {
         );
         if (!payload) throw new Error("Invalid token");
 
-        const user = await this.userService.getUserByUsernameOrEmail(payload.userName);
-        if(!user) throw new Error("User not found");
+        const user = await this.userRepository.getUserByUsernameOrEmail(payload.userName);
+        if (!user) throw new Error("User not found");
 
-        userData = payload;
+        userData = Object.assign(user);
       } catch(error) {
         throw new BadRequestException(error.message);
       }

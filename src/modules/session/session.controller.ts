@@ -1,5 +1,5 @@
 import { Controller, Get, Headers, HttpCode } from '@nestjs/common';
-import { SessionService } from './session.service';
+import { SessionService } from 'src/modules/session/session.service';
 import { Public } from 'src/modules/auth/public.decorator';
 
 @Controller('Session')

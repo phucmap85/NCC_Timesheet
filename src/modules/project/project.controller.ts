@@ -44,7 +44,7 @@ export class ProjectController {
 
   @Delete("Delete")
   @HttpCode(200)
-  async deleteProject(@Query('Id', ParseIntPipe) id: number): Promise<object | null> {
+  async deleteProject(@Query('Id', ParseIntPipe) id: number): Promise<void> {
     return await this.projectService.deleteProject(id);
   }
 }

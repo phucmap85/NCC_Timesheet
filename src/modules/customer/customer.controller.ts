@@ -1,13 +1,14 @@
-import { Controller, Get, Post, Body, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Delete, Query, ParseIntPipe, HttpCode } from '@nestjs/common';
 import { CustomerDto } from 'src/modules/customer/customer.dto';
-import { GetAllPaggingDto } from 'src/base/base.dto';
-import { CustomerService } from './customer.service';
+import { GetAllPaggingDto } from 'src/common/base/base.dto';
+import { CustomerService } from 'src/modules/customer/customer.service';
 
 @Controller('Customer')
 export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
 
   @Post("GetAllPagging")
+  @HttpCode(200)
   async getAllPagging(@Body() getAllPaggingDto: GetAllPaggingDto): Promise<object | null> {
     const {
       filterItems = [], 
@@ -25,6 +26,7 @@ export class CustomerController {
   }
 
   @Post("Save")
+  @HttpCode(200)
   async createOrEditCustomer(@Body() customerDto: CustomerDto): Promise<object | null> {
     const { id = 0, name, code, address = "" } = customerDto;
 
@@ -32,7 +34,8 @@ export class CustomerController {
   }
 
   @Delete("Delete")
-  async deleteCustomer(@Query("Id") id: number) {
+  @HttpCode(200)
+  async deleteCustomer(@Query("Id", ParseIntPipe) id: number): Promise<void> {
     return this.customerService.deleteCustomer(id);
   }
 }

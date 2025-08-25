@@ -1,40 +1,38 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { In } from 'typeorm';
 import { ProjectDto } from 'src/modules/project/project.dto';
-import { Project, ProjectUser, ProjectTask, ProjectTargetUser, User, Task } from 'src/entities';
-import { CustomerService } from 'src/modules/customer/customer.service';
+import { 
+  UserRepository,
+  TaskRepository,
+  ClientRepository,
+  ProjectRepository,
+  ProjectUserRepository,
+  ProjectTaskRepository,
+  ProjectTargetUserRepository
+} from 'src/common/repositories';
 
 @Injectable()
 export class ProjectService {
   constructor(
-    @InjectRepository(User) private userRepository: Repository<User>,
-    @InjectRepository(Task) private taskRepository: Repository<Task>,
-    @InjectRepository(Project) private projectRepository: Repository<Project>,
-    @InjectRepository(ProjectUser) private projectUserRepository: Repository<ProjectUser>,
-    @InjectRepository(ProjectTask) private projectTaskRepository: Repository<ProjectTask>,
-    @InjectRepository(ProjectTargetUser) private projectTargetUserRepository: Repository<ProjectTargetUser>,
-    private readonly customerService: CustomerService,
+    private readonly userRepository: UserRepository,
+    private readonly taskRepository: TaskRepository,
+    private readonly clientRepository: ClientRepository,
+    private readonly projectRepository: ProjectRepository,
+    private readonly projectUserRepository: ProjectUserRepository,
+    private readonly projectTaskRepository: ProjectTaskRepository,
+    private readonly projectTargetUserRepository: ProjectTargetUserRepository,
   ) {}
 
   async getProjectById(id: number): Promise<object | null> {
     try {
-      const project = await this.projectRepository.findOne({ where: { id: id } });
+      const project = await this.projectRepository.getProjectById(id);
       if (!project) throw new Error("Project not found");
-
-      const users = await this.projectUserRepository.find({ where: { projectId: id } });
-      const tasks = await this.projectTaskRepository.find({ where: { projectId: id } });
-      const targetUsers = await this.projectTargetUserRepository.find({ where: { projectId: id } });
       
       return {
         ...project,
-        users: users,
-        tasks: tasks,
-        projectTargetUsers: targetUsers,
-        
-        createdAt: undefined,
-        updatedAt: undefined,
-        deletedAt: undefined,
+        users: project.projectUsers,
+        tasks: project.projectTasks,
+        projectTargetUsers: project.projectTargetUsers,
       };
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -60,7 +58,7 @@ export class ProjectService {
       if (search) {
         query.andWhere('project.name LIKE :search', { search: `%${search}%` });
         
-        const customerId = await this.customerService.getCustomerIdByName(search);
+        const customerId = await this.clientRepository.getCustomerIdByName(search);
         if (customerId) query.orWhere('project.customerId = :customerId', { customerId });
       }
 
@@ -79,20 +77,15 @@ export class ProjectService {
         }
       }
       
-      return {
-        ...projects,
-        createdAt: undefined,
-        updatedAt: undefined,
-        deletedAt: undefined,
-      };
+      return projects;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
   async getQuantityProject(): Promise<object | null> {
-    const count0 = await this.projectRepository.count({ where: { status: 0 } });
-    const count1 = await this.projectRepository.count({ where: { status: 1 } });
+    const count0 = await this.projectRepository.getProjectCountByStatus(0);
+    const count1 = await this.projectRepository.getProjectCountByStatus(1);
     return [{ status: 0, quantity: count0 }, { status: 1, quantity: count1 }];
   }
   
@@ -139,16 +132,16 @@ export class ProjectService {
       // Create new project
       if (id === 0) {
         // Check for existing name
-        const existingName = await this.projectRepository.findOne({ where: { name: name } });
+        const existingName = await this.projectRepository.getProjectByName(name);
         if (existingName) throw new Error(`Project with name ${name} already exists`);
 
         // Check for existing code
-        const existingCode = await this.projectRepository.findOne({ where: { code: code } });
+        const existingCode = await this.projectRepository.getProjectByCode(code);
         if (existingCode) throw new Error(`Project with code ${code} already exists`);
 
         // Validate customer exists
         if (customerId) {
-          const customer = await this.customerService.getCustomerById(customerId);
+          const customer = await this.clientRepository.getCustomerById(customerId);
           if (!customer) throw new Error(`Customer with ID ${customerId} not found`);
         }
 
@@ -177,69 +170,66 @@ export class ProjectService {
           }
         }
 
-        const newProject = this.projectRepository.create({
-          name, code, status, timeStart, timeEnd, note, projectType, customerId,
+        const newProject = {
+          name, code, status, 
+          note, projectType, customerId,
           notifyChannel, mezonUrl, komuChannelId, isNoticeKMSubmitTS,
           isNoticeKMRequestOffDate, isNoticeKMApproveRequestOffDate,
           isNoticeKMRequestChangeWorkingTime, isNoticeKMApproveChangeWorkingTime,
-          isAllUserBelongTo, isAllowTeamBuilding
-        });
+          isAllUserBelongTo, isAllowTeamBuilding,
+          timeStart: timeStart ? new Date(timeStart) : undefined,
+          timeEnd: timeEnd ? new Date(timeEnd) : undefined,
+        };
 
-        const savedProject = await this.projectRepository.save(newProject);
+        const savedProject = await this.projectRepository.saveProject(newProject);
 
         // Save project users
         if (users && users.length > 0) {
-          const projectUsers = users.map(user => 
-            this.projectUserRepository.create({
-              projectId: savedProject.id,
-              userId: user.userId,
-              type: user.type,
-              isTemp: user.isTemp || false
-            })
-          );
-          await this.projectUserRepository.save(projectUsers);
+          const projectUsers = users.map(user => ({
+            projectId: savedProject.id,
+            userId: user.userId,
+            type: user.type,
+            isTemp: user.isTemp || false
+          }));
+          await this.projectUserRepository.saveProjectUsers(projectUsers);
         }
 
         // Save project tasks
         if (tasks && tasks.length > 0) {
-          const projectTasks = tasks.map(task =>
-            this.projectTaskRepository.create({
-              projectId: savedProject.id,
-              taskId: task.taskId,
-              billable: task.billable
-            })
-          );
-          await this.projectTaskRepository.save(projectTasks);
+          const projectTasks = tasks.map(task => ({
+            projectId: savedProject.id,
+            taskId: task.taskId,
+            billable: task.billable
+          }));
+          await this.projectTaskRepository.saveProjectTasks(projectTasks);
         }
 
         // Save project target users
         if (projectTargetUsers && projectTargetUsers.length > 0) {
-          const targetUsers = projectTargetUsers.map(targetUser =>
-            this.projectTargetUserRepository.create({
-              projectId: savedProject.id,
-              userId: targetUser.userId,
-              roleName: targetUser.roleName
-            })
-          );
-          await this.projectTargetUserRepository.save(targetUsers);
+          const targetUsers = projectTargetUsers.map(targetUser => ({
+            projectId: savedProject.id,
+            userId: targetUser.userId,
+            roleName: targetUser.roleName
+          }));
+          await this.projectTargetUserRepository.saveProjectTargetUsers(targetUsers);
         }
 
         return savedProject;
       }
 
       // Update existing project
-      let project = await this.projectRepository.findOne({ where: { id: id } });
+      let project = await this.projectRepository.getProjectById(id);
       if (!project) throw new Error("Project not found");
 
       if (name !== project.name) {
-        const existingName = await this.projectRepository.findOne({ where: { name: name } });
+        const existingName = await this.projectRepository.getProjectByName(name);
         if (existingName && existingName.id !== id) {
           throw new Error(`Project with name ${name} already exists`);
         }
       }
 
       if (code !== project.code) {
-        const existingCode = await this.projectRepository.findOne({ where: { code: code } });
+        const existingCode = await this.projectRepository.getProjectByCode(code);
         if (existingCode && existingCode.id !== id) {
           throw new Error(`Project with code ${code} already exists`);
         }
@@ -247,7 +237,7 @@ export class ProjectService {
 
       // Validate customer exists
       if (customerId && customerId !== project.customerId) {
-        const customer = await this.customerService.getCustomerById(customerId);
+        const customer = await this.clientRepository.getCustomerById(customerId);
         if (!customer) throw new Error(`Customer with ID ${customerId} not found`);
       }
 
@@ -271,46 +261,40 @@ export class ProjectService {
       project.isAllUserBelongTo = isAllUserBelongTo;
       project.isAllowTeamBuilding = isAllowTeamBuilding;
 
-      await this.projectRepository.save(project);
+      await this.projectRepository.saveProject(project);
 
       // Update project users
-      await this.projectUserRepository.delete({ projectId: id });
+      await this.projectUserRepository.deleteByProjectId(id);
       if (users && users.length > 0) {
-        const projectUsers = users.map(user =>
-          this.projectUserRepository.create({
-            projectId: id,
-            userId: user.userId,
-            type: user.type,
-            isTemp: user.isTemp || false
-          })
-        );
-        await this.projectUserRepository.save(projectUsers);
+        const projectUsers = users.map(user => ({
+          projectId: id,
+          userId: user.userId,
+          type: user.type,
+          isTemp: user.isTemp || false
+        }));
+        await this.projectUserRepository.saveProjectUsers(projectUsers);
       }
 
       // Update project tasks
-      await this.projectTaskRepository.delete({ projectId: id });
+      await this.projectTaskRepository.deleteByProjectId(id);
       if (tasks && tasks.length > 0) {
-        const projectTasks = tasks.map(task =>
-          this.projectTaskRepository.create({
-            projectId: id,
-            taskId: task.taskId,
-            billable: task.billable
-          })
-        );
-        await this.projectTaskRepository.save(projectTasks);
+        const projectTasks = tasks.map(task => ({
+          projectId: id,
+          taskId: task.taskId,
+          billable: task.billable
+        }));
+        await this.projectTaskRepository.saveProjectTasks(projectTasks);
       }
 
       // Update project target users
-      await this.projectTargetUserRepository.delete({ projectId: id });
+      await this.projectTargetUserRepository.deleteByProjectId(id);
       if (projectTargetUsers && projectTargetUsers.length > 0) {
-        const targetUsers = projectTargetUsers.map(targetUser =>
-          this.projectTargetUserRepository.create({
-            projectId: id,
-            userId: targetUser.userId,
-            roleName: targetUser.roleName
-          })
-        );
-        await this.projectTargetUserRepository.save(targetUsers);
+        const targetUsers = projectTargetUsers.map(targetUser => ({
+          projectId: id,
+          userId: targetUser.userId,
+          roleName: targetUser.roleName
+        }));
+        await this.projectTargetUserRepository.saveProjectTargetUsers(targetUsers);
       }
 
       return project;
@@ -321,13 +305,13 @@ export class ProjectService {
 
   async activeProject(id: number): Promise<object | null> {
     try {
-      const project = await this.projectRepository.findOne({ where: { id: id } });
+      const project = await this.projectRepository.getProjectById(id);
       if (!project) throw new Error("Project not found");
 
       if (project.status === 0) throw new Error("Project is already active");
 
       project.status = 0;
-      await this.projectRepository.save(project);
+      await this.projectRepository.saveProject(project);
       
       return null;
     } catch (error) {
@@ -337,13 +321,13 @@ export class ProjectService {
 
   async inactiveProject(id: number): Promise<object | null> {
     try {
-      const project = await this.projectRepository.findOne({ where: { id: id } });
+      const project = await this.projectRepository.getProjectById(id);
       if (!project) throw new Error("Project not found");
 
       if(project.status === 1) throw new Error("Project is already inactive");
 
       project.status = 1;
-      await this.projectRepository.save(project);
+      await this.projectRepository.saveProject(project);
 
       return null;
     } catch (error) {
@@ -351,18 +335,12 @@ export class ProjectService {
     }
   }
 
-  async deleteProject(id: number): Promise<object | null> {
+  async deleteProject(id: number): Promise<void> {
     try {
-      const project = await this.projectRepository.findOne({ where: { id: id } });
+      const project = await this.projectRepository.getProjectById(id);
       if (!project) throw new Error("Project not found");
 
-      await this.projectUserRepository.delete({ projectId: id });
-      await this.projectTaskRepository.delete({ projectId: id });
-      await this.projectTargetUserRepository.delete({ projectId: id });
-
-      await this.projectRepository.delete(id);
-
-      return null;
+      return await this.projectRepository.deleteProjectById(id);
     } catch (error) {
       throw new BadRequestException(error.message);
     }

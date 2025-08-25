@@ -1,15 +1,13 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { SessionService } from './session.service';
 import { SessionController } from './session.controller';
-import { UserModule } from 'src/modules/user/user.module';
+import { User } from 'src/common/database/entities';
+import { UserRepository } from 'src/common/repositories';
 
 @Module({
-  imports: [
-    UserModule,
-    ConfigModule.forRoot()
-  ],
-  providers: [SessionService],
+  imports: [TypeOrmModule.forFeature([User])],
+  providers: [SessionService, UserRepository],
   controllers: [SessionController]
 })
 export class SessionModule {}

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { UserRole, RolePermission } from 'src/entities';
-import { AbpUserConfiguration } from 'src/constant/default_config';
+import { UserRole, RolePermission } from 'src/common/database/entities';
+import { AbpUserConfiguration } from 'src/common/constants/default_config';
 
 @Injectable()
 export class AppService {

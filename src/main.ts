@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from 'src/app.module';
-import { BaseExceptionFilter } from 'src/utils/base-exception.filter';
-import { BaseResponseInterceptor } from 'src/utils/base-response.interceptor';
+import { BaseExceptionFilter } from 'src/common/utils/base-exception.filter';
+import { BaseResponseInterceptor } from 'src/common/utils/base-response.interceptor';
+
+export let app: INestApplication;
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  app = await NestFactory.create(AppModule, { cors: true });
   
   // Set global prefix for API routes
   app.setGlobalPrefix('api/services/app', { 

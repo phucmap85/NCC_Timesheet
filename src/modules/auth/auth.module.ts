@@ -1,19 +1,19 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { AuthService } from './auth.service';
-import { UserModule } from 'src/modules/user/user.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthService } from 'src/modules/auth/auth.service';
+import { User } from 'src/common/database/entities';
+import { UserRepository } from 'src/common/repositories';
 
 @Module({
   imports: [
-    UserModule,
-    ConfigModule.forRoot(),
+    TypeOrmModule.forFeature([User]),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_ACCESS_SECRET
     }),
   ],
-  providers: [AuthService],
+  providers: [AuthService, UserRepository],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -1,199 +1,162 @@
-import { BadRequestException, Injectable, Inject, forwardRef } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import { Role, RolePermission, UserRole } from 'src/entities';
-import { BaseService } from 'src/base/base.service';
-import { UserService } from 'src/modules/user/user.service';
-import { allPermissionsWithConfig, allPermissionsName } from 'src/constant/default_config';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { Role, RolePermission } from 'src/common/database/entities';
+import { allPermissionsWithConfig, allPermissionsName } from 'src/common/constants/default_config';
 import { RoleDto } from 'src/modules/role/role.dto';
+import {
+  RoleRepository,
+  UserRoleRepository,
+  RolePermissionRepository,
+  UserRepository
+} from 'src/common/repositories';
 
 @Injectable()
-export class RoleService extends BaseService<Role> {
+export class RoleService {
   constructor(
-    @InjectRepository(Role) private roleRepository: Repository<Role>,
-    @InjectRepository(UserRole) private userRoleRepository: Repository<UserRole>,
-    @InjectRepository(RolePermission) private rolePermissionRepository: Repository<RolePermission>,
-    @Inject(forwardRef(() => UserService))
-    private readonly userService: UserService
-  ) {
-    super(roleRepository, 'role');
-  }
+    private readonly userRepository: UserRepository,
+    private readonly roleRepository: RoleRepository,
+    private readonly rolePermissionRepository: RolePermissionRepository,
+    private readonly userRoleRepository: UserRoleRepository,
+  ) {}
 
   async getAllRoles(
     keyword: string, 
     skipCount: number, 
     maxResultCount: number
-  ): Promise<object | null> {
-    return this.getAllPaging(
+  ): Promise<{ totalCount: number; items: Role[] }> {
+    return this.roleRepository.getAllPaging(
       [], keyword, skipCount, maxResultCount,
       ['name', 'displayName'], 'id', 'ASC'
     );
   }
 
-  async getRoleById(id: number): Promise<object | null> {
+  async getRoleForEdit(id: number): Promise<{
+    role: Role;
+    permissions: any;
+    grantedPermissionNames: string[];
+    users: any[];
+  }> {
     try {
-      const role = await this.roleRepository.findOne({ where: { id: id } });
+      const role = await this.roleRepository.findById(id);
+      if (!role) {
+        throw new Error(`Role with id ${id} does not exist`);
+      }
 
-      if (!role) throw new Error(`Role with id ${id} does not exist`);
+      const rolePermissions = await this.rolePermissionRepository.getPermissionsByRoleId(id);
+      const userRoles = await this.userRoleRepository.getUsersWithRoleDetails(id);
+
+      const users = await Promise.all(
+        userRoles.map(async userRole => {
+          return await this.userRepository.findById(userRole.userId);
+        })
+      );
 
       return {
-        ...role,
-        createdAt: undefined,
-        updatedAt: undefined,
-        deletedAt: undefined,
+        role: role,
+        permissions: allPermissionsWithConfig,
+        grantedPermissionNames: rolePermissions.map(permission => permission.permissionKey),
+        users: users,
       };
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
-  async getRoleByName(name: string): Promise<object | null> {
+  async createRole(roleDto: RoleDto): Promise<Role> {
     try {
-      const role = await this.roleRepository.findOne({ where: { name: name } });
+      const { nameExists, displayNameExists } = await this.roleRepository.checkRoleExists(
+        roleDto.name,
+        roleDto.displayName
+      );
       
-      if (!role) throw new Error(`Role with name ${name} does not exist`);
+      if (nameExists) throw new Error(`Role with name ${roleDto.name} already exists`);
       
-      return {
-        ...role,
-        createdAt: undefined,
-        updatedAt: undefined,
-        deletedAt: undefined,
+      if (displayNameExists) {
+        throw new Error(`Role with display name ${roleDto.displayName} already exists`);
+      }
+
+      const roleData = {
+        ...roleDto,
+        normalizedName: roleDto.normalizedName || roleDto.name.toUpperCase(),
       };
+
+      return await this.roleRepository.saveRole(roleData);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
-  async getRoleForEdit(id: number): Promise<object | null> {
+  async updateRole(roleDto: RoleDto): Promise<Role> {
     try {
-      const role = await this.getRoleById(id);
-      const rolePermissions = await this.rolePermissionRepository.find({ where: { roleId: id } });
-      const userRoles = await this.userRoleRepository.find({ where: { roleId: id } });
-
-      const users = await Promise.all(userRoles.map(async userRole => {
-        return await this.userService.getUserById(userRole.userId);
-      }));
-
-      return {
-        "role": role,
-        "permissions": allPermissionsWithConfig,
-        "grantedPermissionNames": rolePermissions.map(permission => permission.permissionKey),
-        "users": users,
+      if (!roleDto.id) {
+        throw new Error('RoleId is required for update');
       }
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
 
-  async createRole(role: RoleDto): Promise<object | null> {
-    try {
-      const existingName = await this.roleRepository.findOne({ where: { name: role.name } });
-      const existingDisplayName = await this.roleRepository.findOne({ where: { displayName: role.displayName } });
-      
-      if (existingName) throw new Error(`Role with name ${role.name} already exists`);
-      if (existingDisplayName) throw new Error(`Role with display name ${role.displayName} already exists`);
+      const existingRole = await this.roleRepository.findById(roleDto.id);
+      if (!existingRole) {
+        throw new Error(`Role with id ${roleDto.id} does not exist`);
+      }
 
-      return await this.roleRepository.save({
-        ...role,
-        normalizedName: role.normalizedName || role.name.toUpperCase(),
-      });
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
+      // Check for name conflicts (excluding current role)
+      if (roleDto.name !== existingRole.name || roleDto.displayName !== existingRole.displayName) {
+        const { nameExists, displayNameExists } = await this.roleRepository.checkRoleExists(
+          roleDto.name,
+          roleDto.displayName,
+          roleDto.id
+        );
 
-  async updateRole(role: RoleDto): Promise<object | null> {
-    try {
-      if (!role.id) throw new Error('RoleId is required for update');
+        if (nameExists) throw new Error(`Role with name ${roleDto.name} already exists`);
 
-      const existingRole = await this.getRoleById(role.id) as any;
-
-      if(role.name !== existingRole.name) {
-        const existingName = await this.roleRepository.findOne({ where: { name: role.name } });
-        if (existingName && existingName.id !== role.id) {
-          throw new Error(`Role with name ${role.name} already exists`);
+        if (displayNameExists) {
+          throw new Error(`Role with display name ${roleDto.displayName} already exists`);
         }
       }
 
-      if(role.displayName !== existingRole.displayName) {
-        const existingDisplayName = await this.roleRepository.findOne({ where: { displayName: role.displayName } });
-        if (existingDisplayName && existingDisplayName.id !== role.id) {
-          throw new Error(`Role with display name ${role.displayName} already exists`);
-        }
-      }
+      const roleData = {
+        ...roleDto,
+        normalizedName: roleDto.normalizedName || roleDto.name.toUpperCase(),
+      };
 
-      return await this.roleRepository.save({
-        ...role,
-        normalizedName: role.normalizedName || role.name.toUpperCase(),
-      });
+      return await this.roleRepository.saveRole(roleData);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
-  async changeRolePermission(editPermissionsAndId: object): Promise<object | null> {
-    try {
-      const id = editPermissionsAndId['id'];
-      const editPermissions = editPermissionsAndId['permissions'];
+  async changeRolePermission(
+    id: number,
+    newPermissionKeys: string[]
+  ): Promise<RolePermission[]> {
+    try {  
+      if (!id || !newPermissionKeys) throw new Error('Id and permissions are required');
       
-      if (!id || !editPermissions) {
-        throw new Error('Id and editPermissions are required');
-      }
-      
-      const newPermissionKeys = Object.values(editPermissions) as string[];
+      // Validate all permission keys exist
       for (const permissionKey of newPermissionKeys) {
-        if (!allPermissionsName.some(permission => permission === permissionKey)) {
+        if (!allPermissionsName.includes(permissionKey)) {
           throw new Error(`Permission ${permissionKey} does not exist`);
         }
       }
       
-      const existingPermissions = await this.rolePermissionRepository.find({ where: { roleId: id } });
-      const existingPermissionKeys = existingPermissions.map(permission => permission.permissionKey);
-      
-      const permissionsToRemove = existingPermissionKeys.filter(key => !newPermissionKeys.includes(key));
-      const permissionsToAdd = newPermissionKeys.filter(key => !existingPermissionKeys.includes(key));
-      
-      if (permissionsToRemove.length > 0) {
-        await this.rolePermissionRepository.delete({
-          roleId: id,
-          permissionKey: In(permissionsToRemove)
-        });
-      }
-
-      if (permissionsToAdd.length > 0) {
-        const newPermissions = permissionsToAdd.map(permissionKey => {
-          const rolePermission = new RolePermission();
-          rolePermission.roleId = id;
-          rolePermission.permissionKey = permissionKey;
-          return rolePermission;
-        });
-        await this.rolePermissionRepository.save(newPermissions);
-      }
-
-      return await this.rolePermissionRepository.find({ where: { roleId: id } });
+      // Update permissions using repository method
+      return await this.rolePermissionRepository.updateRolePermissions(id, newPermissionKeys);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
-  async deleteRole(id: number): Promise<object | null> {
+  async deleteRole(id: number): Promise<void> {
     try {
       // Check if the role exists
-      await this.getRoleById(id);
+      const role = await this.roleRepository.findById(id);
+      if (!role) throw new Error(`Role with id ${id} does not exist`);
 
       // Check if the role is associated with any users
-      const userRoles = await this.userRoleRepository.count({ where: { roleId: id } });
-      if (userRoles > 0) {
-        throw new Error(`Role with id ${id} is associated with users and cannot be deleted`);
+      const userCount = await this.userRoleRepository.countUsersByRoleId(id);
+      if (userCount > 0) {
+        throw new Error(`Role with id ${id} is associated with ${userCount} users and cannot be deleted`);
       }
 
-      // Delete associated permissions
-      await this.rolePermissionRepository.delete({ roleId: id });
-
       // Delete the role
-      await this.roleRepository.delete(id);
-
-      return null;
+      return await this.roleRepository.deleteRoleById(id);
     } catch (error) {
       throw new BadRequestException(error.message);
     }

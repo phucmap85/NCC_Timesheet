@@ -1,13 +1,14 @@
-import { Controller, Get, Post, Body, Delete, Query, Put } from '@nestjs/common';
-import { GetAllPaggingDto } from 'src/base/base.dto';
+import { Controller, Get, Post, Body, Delete, Query, Put, ParseIntPipe, HttpCode } from '@nestjs/common';
+import { GetAllPaggingDto } from 'src/common/base/base.dto';
 import { PositionDto } from 'src/modules/position/position.dto';
-import { PositionService } from './position.service';
+import { PositionService } from 'src/modules/position/position.service';
 
 @Controller('Position')
 export class PositionController {
   constructor(private readonly positionService: PositionService) {}
 
   @Post("GetAllPagging")
+  @HttpCode(200)
   async getAllPagging(@Body() getAllPaggingDto: GetAllPaggingDto): Promise<object | null> {
     const {
       filterItems = [], 
@@ -25,6 +26,7 @@ export class PositionController {
   }
 
   @Post("Create")
+  @HttpCode(200)
   async createPosition(@Body() positionDto: PositionDto): Promise<object | null> {
     const { id, name, shortName, code, color } = positionDto;
 
@@ -32,6 +34,7 @@ export class PositionController {
   }
 
   @Put("Update")
+  @HttpCode(200)
   async updatePosition(@Body() positionDto: PositionDto): Promise<object | null> {
     const { id = 0, name, shortName, code, color } = positionDto;
 
@@ -39,7 +42,8 @@ export class PositionController {
   }
 
   @Delete("Delete")
-  async deletePosition(@Query("Id") id: number) {
+  @HttpCode(200)
+  async deletePosition(@Query("Id", ParseIntPipe) id: number): Promise<void> {
     return this.positionService.deletePosition(id);
   }
 }

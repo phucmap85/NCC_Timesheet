@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Delete, Query, HttpCode, ParseIntPipe } from '@nestjs/common';
 import { TaskDto } from 'src/modules/task/task.dto';
-import { TaskService } from './task.service';
+import { TaskService } from 'src/modules/task/task.service';
 
 @Controller('Task')
 export class TaskController {
@@ -12,6 +12,7 @@ export class TaskController {
   }
 
   @Post("Save")
+  @HttpCode(200)
   async createTask(@Body() taskDto: TaskDto): Promise<object | null> {
     const { id = 0, name, type, isDeleted = false } = taskDto;
 
@@ -19,17 +20,20 @@ export class TaskController {
   }
 
   @Delete("Archive")
-  async archiveTask(@Query("Id") id: number) {
+  @HttpCode(200)
+  async archiveTask(@Query("Id", ParseIntPipe) id: number): Promise<void> {
     return this.taskService.changeDeleteStatus(id);
   }
 
   @Post("DeArchive")
-  async deArchiveTask(@Body() body: object) {
+  @HttpCode(200)
+  async deArchiveTask(@Body() body: object): Promise<void> {
     return this.taskService.changeDeleteStatus(body['id']);
   }
 
   @Delete("Delete")
-  async deleteTask(@Query("Id") id: number) {
+  @HttpCode(200)
+  async deleteTask(@Query("Id", ParseIntPipe) id: number): Promise<void> {
     return this.taskService.deleteTask(id);
   }
 }
