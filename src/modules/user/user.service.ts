@@ -297,11 +297,48 @@ export class UserService {
 
       if (!data || data.length <= 0) throw new Error('No data found in the file');
       else {
-        // Check if all users exist
+        // Validate data
         for (const item of data) {
           const user = await this.userRepository.getUserByUsernameOrEmail(item['username/email']);
           if (!user || !item['username/email']) {
             throw new Error(`User with username/email ${item['username/email']} does not exist`);
+          }
+
+          // Convert Excel time format to string format and validate
+          const morningStartAt = convertExcelTimeToString(item.morningStartAt);
+          const morningEndAt = convertExcelTimeToString(item.morningEndAt);
+          const afternoonStartAt = convertExcelTimeToString(item.afternoonStartAt);
+          const afternoonEndAt = convertExcelTimeToString(item.afternoonEndAt);
+
+          // Validate time format (hh:mm or hh:mm:ss)
+          const timeFormatRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
+          
+          if (!timeFormatRegex.test(morningStartAt)) {
+            throw new Error(`morningStartAt must be in hh:mm or hh:mm:ss format`);
+          }
+          if (!timeFormatRegex.test(morningEndAt)) {
+            throw new Error(`morningEndAt must be in hh:mm or hh:mm:ss format`);
+          }
+          if (!timeFormatRegex.test(afternoonStartAt)) {
+            throw new Error(`afternoonStartAt must be in hh:mm or hh:mm:ss format`);
+          }
+          if (!timeFormatRegex.test(afternoonEndAt)) {
+            throw new Error(`afternoonEndAt must be in hh:mm or hh:mm:ss format`);
+          }
+
+          // Validate working duration
+          if (typeof item.morningWorking !== 'number' || item.morningWorking < 0) {
+            throw new Error(`morningWorking must be a positive number`);
+          }
+          if (typeof item.afternoonWorking !== 'number' || item.afternoonWorking < 0) {
+            throw new Error(`afternoonWorking must be a positive number`);
+          }
+
+          if(item.morningWorking > 12) {
+            throw new Error(`morningWorking must be less than or equal to 12 hours`);
+          }
+          if(item.afternoonWorking > 12) {
+            throw new Error(`afternoonWorking must be less than or equal to 12 hours`);
           }
         }
 
@@ -309,7 +346,6 @@ export class UserService {
         for (const item of data) {
           const user = await this.userRepository.getUserByUsernameOrEmail(item['username/email']) as any;
 
-          // Convert Excel time format to string format
           const morningStartAt = convertExcelTimeToString(item.morningStartAt);
           const morningEndAt = convertExcelTimeToString(item.morningEndAt);
           const afternoonStartAt = convertExcelTimeToString(item.afternoonStartAt);

@@ -1,13 +1,5 @@
 export const convertExcelTimeToString = (excelTime: number | string): string => {
-  if (typeof excelTime === 'string') {
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
-    if (timeRegex.test(excelTime)) return excelTime;
-    
-    const numericValue = parseFloat(excelTime);
-    if (isNaN(numericValue)) return excelTime;
-    
-    excelTime = numericValue;
-  }
+  if (typeof excelTime === 'string') return excelTime;
 
   const totalMinutes = Math.round(excelTime * 24 * 60);
   const hours = Math.floor(totalMinutes / 60);
