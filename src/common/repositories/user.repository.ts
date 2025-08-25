@@ -21,6 +21,10 @@ export class UserRepository extends BaseRepository<User> {
     return this.findOne({ where: { userName: userName } });
   }
 
+  async getUserByPhoneNumber(phoneNumber: string): Promise<User | null> {
+    return this.findOne({ where: { phoneNumber: phoneNumber } });
+  }
+
   async getUserByUsernameOrEmail(usernameOrEmail: string): Promise<User | null> {
     if ((/^[^\s@]+@[^\s@]+\.[^\s@]+$/).test(usernameOrEmail)) {
       return this.getUserByEmail(usernameOrEmail);
