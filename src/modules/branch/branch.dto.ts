@@ -8,7 +8,6 @@ import {
   Min,
   Max,
   Matches,
-  IsDateString
 } from 'class-validator';
 
 export class BranchDto {
@@ -50,12 +49,16 @@ export class BranchDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsDateString()
+  @Matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, {
+    message: 'morningStartAt must be in hh:mm or hh:mm:ss format'
+  })
   morningStartAt: string;
 
   @IsNotEmpty()
   @IsString()
-  @IsDateString()
+  @Matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, {
+    message: 'morningEndAt must be in hh:mm or hh:mm:ss format'
+  })
   morningEndAt: string;
 
   @IsNotEmpty()
@@ -66,11 +69,15 @@ export class BranchDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsDateString()
+  @Matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, {
+    message: 'afternoonStartAt must be in hh:mm or hh:mm:ss format'
+  })
   afternoonStartAt: string;
 
   @IsNotEmpty()
   @IsString()
-  @IsDateString()
+  @Matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, {
+    message: 'afternoonEndAt must be in hh:mm or hh:mm:ss format'
+  })
   afternoonEndAt: string;
 }

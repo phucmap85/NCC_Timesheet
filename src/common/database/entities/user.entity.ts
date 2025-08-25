@@ -56,7 +56,7 @@ export class User {
   @Column({ type: 'varchar', length: 50, nullable: true })
   jobTitle: string;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ type: 'int', nullable: true })
   type: number;
 
   @Column({ type: 'int', nullable: true })
@@ -65,7 +65,7 @@ export class User {
   @Column({ type: 'int', nullable: true })
   beginLevel: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({ type: 'int', nullable: true })
   salary: number;
 
   @Column({ type: 'date', nullable: true })
