@@ -11,3 +11,4 @@ export { RoleRepository } from './role.repository';
 export { RolePermissionRepository } from './role-permission.repository';
 export { UserRoleRepository } from './user-role.repository';
 export { TimesheetRepository } from './timesheet.repository';
+export { RepositoryManager } from './repository-manager.service';
