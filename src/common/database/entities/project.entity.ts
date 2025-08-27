@@ -24,10 +24,10 @@ export class Project {
   @Column({ type: 'text', nullable: true })
   note: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   timeStart: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   timeEnd: Date;
 
   @Column({ type: 'int', default: 0 })

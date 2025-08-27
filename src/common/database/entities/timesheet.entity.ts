@@ -37,7 +37,7 @@ export class Timesheet {
   @Column({ type: 'boolean', default: false })
   isTemp: boolean;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'datetime' })
   dateAt: Date;
 
   @CreateDateColumn({ select: false })

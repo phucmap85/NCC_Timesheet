@@ -68,7 +68,7 @@ export class User {
   @Column({ type: 'int', nullable: true })
   salary: number;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   salaryAt: Date;
 
   @Column({ type: 'int', default: 0 })
@@ -77,10 +77,10 @@ export class User {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   startDateAt: Date;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   endDateAt: Date;
 
   @Column({ type: 'boolean', default: false })
