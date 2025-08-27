@@ -1,6 +1,6 @@
 import { Controller, Get, Headers, HttpCode } from '@nestjs/common';
 import { SessionService } from 'src/modules/session/session.service';
-import { Public } from 'src/modules/auth/public.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('Session')
 export class SessionController {

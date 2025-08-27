@@ -10,7 +10,10 @@ export class ProjectUserRepository extends BaseRepository<ProjectUser> {
   }
 
   async getProjectUsersByProjectId(projectId: number): Promise<ProjectUser[]> {
-    return this.findAll({ where: { projectId: projectId } });
+    return this.createQueryBuilder("projectUser")
+      .leftJoinAndSelect("projectUser.user", "user")
+      .where("projectUser.projectId = :projectId", { projectId: projectId })
+      .getMany();
   }
 
   async saveProjectUsers(projectUsers: Partial<ProjectUser>[]): Promise<ProjectUser[]> {

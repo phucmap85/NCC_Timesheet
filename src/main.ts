@@ -2,8 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from 'src/app.module';
-import { BaseExceptionFilter } from 'src/common/utils/base-exception.filter';
-import { BaseResponseInterceptor } from 'src/common/utils/base-response.interceptor';
+import { BaseExceptionFilter } from 'src/common/filters/base-exception.filter';
+import { BaseResponseInterceptor } from 'src/common/interceptors/base-response.interceptor';
 
 export let app: INestApplication;
 

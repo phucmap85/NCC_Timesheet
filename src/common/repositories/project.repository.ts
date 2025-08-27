@@ -42,6 +42,31 @@ export class ProjectRepository extends BaseRepository<Project> {
     return this.count({ where: { status: status } });
   }
 
+  async getProjectsByUserId(userId: number): Promise<Project[]> {
+    return this.createQueryBuilder("project")
+      .leftJoinAndSelect("project.customer", "customer")
+      .leftJoinAndSelect("project.projectUsers", "projectUsers")
+      .leftJoinAndSelect("project.projectTasks", "projectTasks")
+      .leftJoinAndSelect("project.projectTargetUsers", "projectTargetUsers")
+      .leftJoinAndSelect("projectUsers.user", "user")
+      .leftJoinAndSelect("projectTasks.task", "task")
+      .leftJoinAndSelect("projectTargetUsers.user", "targetUser")
+      .where("projectUsers.user.id = :userId", { userId: userId })
+      .getMany();
+  }
+
+  async getProjectsByPMId(pmId: number): Promise<Project[]> {
+    return this.createQueryBuilder("project")
+      .leftJoinAndSelect("project.customer", "customer")
+      .leftJoinAndSelect("project.projectUsers", "projectUsers")
+      .leftJoinAndSelect("project.projectTasks", "projectTasks")
+      .leftJoinAndSelect("project.projectTargetUsers", "projectTargetUsers")
+      .leftJoinAndSelect("projectUsers.user", "user")
+      .where("projectUsers.user.id = :pmId", { pmId: pmId })
+      .andWhere("projectUsers.type = :type", { type: 1 })
+      .getMany();
+  }
+
   async saveProject(project: Partial<Project>): Promise<Project> {
     return await this.withTransaction(async (manager) => {
       return await this.saveWithTransaction(project, manager);

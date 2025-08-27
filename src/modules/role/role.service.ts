@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Role, RolePermission } from 'src/common/database/entities';
-import { allPermissionsWithConfig, allPermissionsName } from 'src/common/constants/default_config';
+import { allPermissionsWithConfig, allPermissionsName } from 'src/common/constants/default-config';
 import { RoleDto } from 'src/modules/role/role.dto';
 import { RepositoryManager } from 'src/common/repositories';
 

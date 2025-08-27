@@ -16,10 +16,12 @@ import { BranchModule } from 'src/modules/branch/branch.module';
 import { PositionModule } from 'src/modules/position/position.module';
 import { TaskModule } from 'src/modules/task/task.module';
 import { ProjectModule } from 'src/modules/project/project.module';
+import { TimesheetModule } from 'src/modules/timesheet/timesheet.module';
+import { MyTimesheetsModule } from 'src/modules/my-timesheets/my-timesheets.module';
 import { GlobalRepositoryModule } from 'src/common/repositories';
 import { AppService } from 'src/app.service';
-import { AuthGuard } from 'src/modules/auth/auth.guard';
-import { AuthMiddleware } from 'src/modules/auth/auth.middleware';
+import { AuthGuard } from 'src/common/guards/auth.guard';
+import { AuthMiddleware } from 'src/common/middlewares/auth.middleware';
 
 @Module({
   imports: [
@@ -39,7 +41,9 @@ import { AuthMiddleware } from 'src/modules/auth/auth.middleware';
     BranchModule,
     PositionModule,
     TaskModule,
-    ProjectModule
+    ProjectModule,
+    TimesheetModule,
+    MyTimesheetsModule
   ],
   controllers: [AppController],
   providers: [

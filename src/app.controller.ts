@@ -3,7 +3,7 @@ import type { Request as ExpressRequest } from 'express';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { AppService } from 'src/app.service';
 import { LoginDto } from 'src/modules/auth/login.dto';
-import { Public } from 'src/modules/auth/public.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller()
 export class AppController {

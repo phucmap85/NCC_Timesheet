@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { In } from 'typeorm';
 import { RepositoryManager } from 'src/common/repositories';
-import { AbpUserConfiguration } from 'src/common/constants/default_config';
+import { AbpUserConfiguration } from 'src/common/constants/default-config';
 
 @Injectable()
 export class AppService {
