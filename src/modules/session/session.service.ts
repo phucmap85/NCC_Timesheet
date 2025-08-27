@@ -31,7 +31,10 @@ export class SessionService {
         const user = await this.repositories.user.getUserByUsernameOrEmail(payload.userName);
         if (!user) throw new Error("User not found");
 
-        userData = Object.assign(user);
+        userData = Object.assign({
+          ...user,
+          password: undefined
+        });
       } catch(error) {
         throw new BadRequestException(error.message);
       }
