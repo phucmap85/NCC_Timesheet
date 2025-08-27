@@ -44,10 +44,16 @@ export class ProjectService {
       }
 
       if (search) {
-        query.andWhere('project.name LIKE :search', { search: `%${search}%` });
-        
         const customerId = await this.repositories.client.getCustomerIdByName(search);
-        if (customerId) query.orWhere('project.customerId = :customerId', { customerId });
+        const searchCondition = customerId 
+          ? '(project.name LIKE :search OR project.customerId = :customerId)'
+          : 'project.name LIKE :search';
+        const searchParams = customerId 
+          ? { search: `%${search}%`, customerId }
+          : { search: `%${search}%` };
+
+        if (status !== undefined) query.andWhere(searchCondition, searchParams);
+        else query.where(searchCondition, searchParams);
       }
 
       const projects = await query.getMany();
@@ -75,6 +81,56 @@ export class ProjectService {
     const count0 = await this.repositories.project.getProjectCountByStatus(0);
     const count1 = await this.repositories.project.getProjectCountByStatus(1);
     return [{ status: 0, quantity: count0 }, { status: 1, quantity: count1 }];
+  }
+
+  async getProjectPM(id: number): Promise<object | null> {
+    try {
+      const projects = await this.repositories.project.getProjectsByPMId(id);
+
+      return projects.map(project => ({
+        id: project.id,
+        name: project.name,
+        code: project.customer ? project.customer.name : null,
+      }));
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async getProjectsIncludingTasks(id: number): Promise<object | null> {
+    try {
+      const projects = await this.repositories.project.getProjectsByUserId(id);
+
+      return await Promise.all(projects.map(async project => {
+        const projectUsers = await this.repositories.projectUser.getProjectUsersByProjectId(project.id);
+        
+        return {
+          id: project.id,
+          
+          customerName: project.customer ? project.customer.name : null,
+          
+          projectCode: project.code,
+          projectName: project.name,
+          projectUserType: project.projectUsers.find(user => user.user.id === id)?.type,
+          
+          listPM: projectUsers.filter(user => user.type === 1).map(user => user.user.fullName),
+          
+          tasks: project.projectTasks.map(task => ({
+            projectTaskId: task.id,
+            billable: task.billable,
+            isDefault: false,
+            taskName: task.task ? task.task.name : null
+          })),
+
+          targetUsers: project.projectTargetUsers.map(targetUser => ({
+            projectTargetUserId: targetUser.userId,
+            userName: targetUser.user ? targetUser.user.userName : null
+          })),
+        };
+      }));
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
   
   async saveProject(projectDto: ProjectDto): Promise<object | null> {
@@ -134,29 +190,15 @@ export class ProjectService {
         }
 
         // Validate timeStart and timeEnd
-        if (timeStart) {
-          const startDate = new Date(timeStart);
-          const now = new Date();
-          
-          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const startOfStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1);
-
-          if (startOfStartDate < startOfToday) {
-            throw new Error('Start time cannot be earlier than today');
-          }
-        }
+        const startDate = new Date(timeStart);
+        const endDate = new Date(timeEnd);
+        const now = new Date();
         
-        if (timeStart && timeEnd) {
-          const startDate = new Date(timeStart);
-          const endDate = new Date(timeEnd);
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
 
-          startDate.setDate(startDate.getDate() + 1);
-          endDate.setDate(endDate.getDate() + 1);
-          
-          if (endDate <= startDate) {
-            throw new Error('End time must be after start time');
-          }
-        }
+        if (startOfStartDate < startOfToday) throw new Error('Start time cannot be earlier than today');
+        if (endDate < startDate) throw new Error('End time must be after start time');
 
         const newProject = {
           name, code, status, 
@@ -228,6 +270,11 @@ export class ProjectService {
         const customer = await this.repositories.client.getCustomerById(customerId);
         if (!customer) throw new Error(`Customer with ID ${customerId} not found`);
       }
+
+      // Validate timeStart and timeEnd
+      const startDate = new Date(timeStart);
+      const endDate = new Date(timeEnd);
+      if (endDate < startDate) throw new Error('End time must be after start time');
 
       // Update project fields
       project.name = name;

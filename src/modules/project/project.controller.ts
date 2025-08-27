@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, HttpCode, Query, ParseIntPipe, DefaultValuePipe, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Request, HttpCode, Query, ParseIntPipe, DefaultValuePipe, Delete } from '@nestjs/common';
+import type { Request as ExpressRequest } from 'express';
 import { ProjectDto } from 'src/modules/project/project.dto';
 import { ProjectService } from 'src/modules/project/project.service';
 
@@ -22,6 +23,16 @@ export class ProjectController {
   @Get("getQuantityProject")
   async getQuantityProject(): Promise<object | null> {
     return await this.projectService.getQuantityProject();
+  }
+
+  @Get("GetProjectPM")
+  async getProjectPM(@Request() req: ExpressRequest): Promise<object | null> {
+    return await this.projectService.getProjectPM(req['user'].id);
+  }
+
+  @Get("GetProjectsIncludingTasks")
+  async getProjectsIncludingTasks(@Request() req: ExpressRequest): Promise<object | null> {
+    return await this.projectService.getProjectsIncludingTasks(req['user'].id);
   }
 
   @Post("Save")

@@ -85,13 +85,15 @@ export class ProjectDto {
   @IsString()
   note?: string;
 
-  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
   @IsDateString()
-  timeStart?: string;
+  timeStart: string;
 
-  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
   @IsDateString()
-  timeEnd?: string;
+  timeEnd: string;
 
   @IsNotEmpty()
   @IsNumber()
