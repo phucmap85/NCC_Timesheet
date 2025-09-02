@@ -1,14 +1,25 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { In } from 'typeorm';
 import { RepositoryManager } from 'src/common/repositories';
 import { AbpUserConfiguration } from 'src/common/constants/default-config';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly repositories: RepositoryManager) {}
-  async getUserConfiguration(user: object): Promise<object | null> {
+  constructor(private readonly repositories: RepositoryManager, private readonly jwtService: JwtService) {}
+  async getUserConfiguration(req: object): Promise<object | null> {
     try {
-      const userRoles = await this.repositories.userRole.findAll({ where: { userId: user['id'] }});
+      // Verify token
+      const token = req['token'];
+      if (!token) throw new Error("No token provided");
+      await this.jwtService.verifyAsync(token, { secret: process.env.JWT_ACCESS_SECRET });
+
+      // Fetch user
+      const user = req['user'];
+      if (!user) throw new Error("No user in request");
+
+      // Fetch user roles and permissions
+      const userRoles = await this.repositories.userRole.findAll({ where: { userId: user.id } });
     
       const roleIds = userRoles.map(userRole => userRole.roleId);
       
@@ -26,7 +37,7 @@ export class AppService {
         ...AbpUserConfiguration,
         session: {
           ...AbpUserConfiguration.session,
-          userId: user['id'],
+          userId: user.id,
         },
         auth: {
           ...AbpUserConfiguration.auth,

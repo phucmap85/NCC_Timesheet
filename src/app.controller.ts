@@ -12,7 +12,7 @@ export class AppController {
   @Public()
   @Get('AbpUserConfiguration/GetAll')
   async getUserConfiguration(@Request() req: ExpressRequest): Promise<object | null> {
-    return this.appService.getUserConfiguration(req['user']);
+    return this.appService.getUserConfiguration(req);
   }
 
   @Public()
