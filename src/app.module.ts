@@ -18,6 +18,9 @@ import { TaskModule } from 'src/modules/task/task.module';
 import { ProjectModule } from 'src/modules/project/project.module';
 import { TimesheetModule } from 'src/modules/timesheet/timesheet.module';
 import { MyTimesheetsModule } from 'src/modules/my-timesheets/my-timesheets.module';
+import { NormalWorkingHourModule } from './modules/normal-working-hour/normal-working-hour.module';
+import { SpecialProjectTaskSettingModule } from './modules/special-project-task-setting/special-project-task-setting.module';
+import { TimekeepingModule } from './modules/timekeeping/timekeeping.module';
 import { GlobalRepositoryModule } from 'src/common/repositories';
 import { AppService } from 'src/app.service';
 import { AuthGuard } from 'src/common/guards/auth.guard';
@@ -43,7 +46,10 @@ import { AuthMiddleware } from 'src/common/middlewares/auth.middleware';
     TaskModule,
     ProjectModule,
     TimesheetModule,
-    MyTimesheetsModule
+    MyTimesheetsModule,
+    NormalWorkingHourModule,
+    SpecialProjectTaskSettingModule,
+    TimekeepingModule
   ],
   controllers: [AppController],
   providers: [
