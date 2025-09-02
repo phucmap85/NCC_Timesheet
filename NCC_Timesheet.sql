@@ -76,11 +76,11 @@ CREATE TABLE `users` (
   `level` int,
   `beginLevel` int,
   `salary` int,
-  `salaryAt` date,
+  `salaryAt` datetime,
   `allowedLeaveDay` int DEFAULT 0,
   `isActive` boolean DEFAULT true,
-  `startDateAt` date,
-  `endDateAt` date,
+  `startDateAt` datetime,
+  `endDateAt` datetime,
   `isWorkingTimeDefault` boolean DEFAULT false,
   `morningWorking` float,
   `morningStartAt` time,
@@ -175,14 +175,15 @@ CREATE TABLE `timesheets` (
   `userId` int,
   `projectTaskId` int,
   `note` varchar(500),
-  `workingTime` decimal(5,2) NOT NULL,
+  `workingTime` int NOT NULL,
   `billable` boolean DEFAULT true,
   `isCharged` boolean DEFAULT false,
-  `status` int NOT NULL,
+  `targetTimesheetId` int,
+  `status` int DEFAULT 0,
   `typeOfWork` int DEFAULT 0,
   `approvedBy` int,
   `isTemp` boolean DEFAULT false,
-  `dateAt` date NOT NULL,
+  `dateAt` datetime NOT NULL,
   `createdAt` timestamp DEFAULT (now()),
   `updatedAt` timestamp DEFAULT (now()),
   `deletedAt` timestamp
@@ -221,3 +222,5 @@ ALTER TABLE `timesheets` ADD FOREIGN KEY (`userId`) REFERENCES `users` (`id`);
 ALTER TABLE `timesheets` ADD FOREIGN KEY (`projectTaskId`) REFERENCES `project_tasks` (`id`);
 
 ALTER TABLE `timesheets` ADD FOREIGN KEY (`approvedBy`) REFERENCES `users` (`id`);
+
+ALTER TABLE `timesheets` ADD FOREIGN KEY (`targetTimesheetId`) REFERENCES `timesheets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
