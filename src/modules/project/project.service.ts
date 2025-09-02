@@ -97,9 +97,9 @@ export class ProjectService {
     }
   }
 
-  async getProjectsIncludingTasks(id: number): Promise<object | null> {
+  async getProjectsIncludingTasks(userId: number): Promise<object | null> {
     try {
-      const projects = await this.repositories.project.getProjectsByUserId(id);
+      const projects = await this.repositories.project.getProjectsByUserId(userId);
 
       return await Promise.all(projects.map(async project => {
         const projectUsers = await this.repositories.projectUser.getProjectUsersByProjectId(project.id);
@@ -111,7 +111,7 @@ export class ProjectService {
           
           projectCode: project.code,
           projectName: project.name,
-          projectUserType: project.projectUsers.find(user => user.user.id === id)?.type,
+          projectUserType: project.projectUsers.find(user => user.user.id === userId)?.type,
           
           listPM: projectUsers.filter(user => user.type === 1).map(user => user.user.fullName),
           
@@ -146,13 +146,20 @@ export class ProjectService {
         isAllowTeamBuilding
       } = projectDto;
 
-      // Validate users exist in Users
+      // Validate users
       if (users && users.length > 0) {
+        // Validate users exist in Users
         const userIds = users.map(user => user.userId);
         const existingUsers = await this.repositories.user.count({ where: { id: In(userIds) } });
         if (userIds.length !== existingUsers) {
           throw new Error(`Some selected users do not exist`);
         }
+
+        // Validate have at least one PM in user list
+        const hasPM = users.some(user => user.type === 1);
+        if (!hasPM) throw new Error('At least one PM must be selected');
+      } else {
+        throw new Error('At least one user must be selected');
       }
 
       // Validate tasks exist in Tasks
@@ -162,10 +169,17 @@ export class ProjectService {
         if (taskIds.length !== existingTasks) {
           throw new Error(`Some selected tasks do not exist`);
         }
+      } else {
+        throw new Error('At least one task must be selected');
       }
 
-      // Validate project target users exist in Users
+      // Validate project target users
       if (projectTargetUsers && projectTargetUsers.length > 0) {
+        // Validate have at least one Shadow in user list
+        const hasShadow = users.some(user => user.type === 2);
+        if (!hasShadow) throw new Error('At least one Shadow must be selected to assign target users');
+
+        // Validate target users exist in Users
         const targetUserIds = projectTargetUsers.map(targetUser => targetUser.userId);
         const existingTargetUsers = await this.repositories.user.count({ where: { id: In(targetUserIds) } });
         if (targetUserIds.length !== existingTargetUsers) {
