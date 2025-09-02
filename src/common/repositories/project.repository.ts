@@ -9,25 +9,23 @@ export class ProjectRepository extends BaseRepository<Project> {
     super(dataSource, Project);
   }
 
-  async getProjectById(id: number): Promise<Project | null> {
+  commonQuery() {
     return this.createQueryBuilder("project")
       .leftJoinAndSelect("project.customer", "customer")
       .leftJoinAndSelect("project.projectTasks", "projectTasks")
       .leftJoinAndSelect("project.projectUsers", "projectUsers")
       .leftJoinAndSelect("project.projectTargetUsers", "projectTargetUsers")
-      .leftJoinAndSelect("projectUsers.user", "user")
+      .leftJoinAndSelect("projectUsers.user", "user");
+  }
+
+  async getProjectById(id: number): Promise<Project | null> {
+    return this.commonQuery()
       .where("project.id = :id", { id: id })
       .getOne();
   }
 
   async getAllProjects(): Promise<Project[]> {
-    return this.createQueryBuilder("project")
-      .leftJoinAndSelect("project.customer", "customer")
-      .leftJoinAndSelect("project.projectTasks", "projectTasks")
-      .leftJoinAndSelect("project.projectUsers", "projectUsers")
-      .leftJoinAndSelect("project.projectTargetUsers", "projectTargetUsers")
-      .leftJoinAndSelect("projectUsers.user", "user")
-      .getMany();
+    return this.commonQuery().getMany();
   }
 
   async getProjectByName(name: string): Promise<Project | null> {
@@ -38,17 +36,18 @@ export class ProjectRepository extends BaseRepository<Project> {
     return this.findOne({ where: { code: code } });
   }
 
+  async getProjectByProjectTaskId(projectTaskId: number): Promise<Project | null> {
+    return this.commonQuery()
+      .where("projectTasks.id = :projectTaskId", { projectTaskId: projectTaskId })
+      .getOne();
+  }
+
   async getProjectCountByStatus(status: number): Promise<number> {
     return this.count({ where: { status: status } });
   }
 
   async getProjectsByUserId(userId: number): Promise<Project[]> {
-    return this.createQueryBuilder("project")
-      .leftJoinAndSelect("project.customer", "customer")
-      .leftJoinAndSelect("project.projectUsers", "projectUsers")
-      .leftJoinAndSelect("project.projectTasks", "projectTasks")
-      .leftJoinAndSelect("project.projectTargetUsers", "projectTargetUsers")
-      .leftJoinAndSelect("projectUsers.user", "user")
+    return this.commonQuery()
       .leftJoinAndSelect("projectTasks.task", "task")
       .leftJoinAndSelect("projectTargetUsers.user", "targetUser")
       .where("projectUsers.user.id = :userId", { userId: userId })
@@ -56,12 +55,7 @@ export class ProjectRepository extends BaseRepository<Project> {
   }
 
   async getProjectsByPMId(pmId: number): Promise<Project[]> {
-    return this.createQueryBuilder("project")
-      .leftJoinAndSelect("project.customer", "customer")
-      .leftJoinAndSelect("project.projectUsers", "projectUsers")
-      .leftJoinAndSelect("project.projectTasks", "projectTasks")
-      .leftJoinAndSelect("project.projectTargetUsers", "projectTargetUsers")
-      .leftJoinAndSelect("projectUsers.user", "user")
+    return this.commonQuery()
       .where("projectUsers.user.id = :pmId", { pmId: pmId })
       .andWhere("projectUsers.type = :type", { type: 1 })
       .getMany();
