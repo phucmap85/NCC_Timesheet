@@ -17,15 +17,15 @@ export class TaskDto {
   @Min(0)
   id?: number;
 
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   @Length(1, 100)
   name: string;
 
+  @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @IsNotEmpty()
-  @IsIn([0, 1])
+  @IsIn([0, 1], { message: 'Type of task must be 0 (Common Task) or 1 (Other Task)' })
   type: number;
 
   @IsOptional()

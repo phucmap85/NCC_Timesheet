@@ -89,7 +89,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsInt()
-  @IsIn([0, 1])
+  @IsIn([0, 1], { message: "Sex must be 0 (Male) or 1 (Female)" })
   sex: number;
 
   @IsOptional()
@@ -115,7 +115,7 @@ export class CreateUserDto {
   @IsOptional()
   @IsNumber()
   @IsInt()
-  @IsIn([0, 1, 2])
+  @IsIn([0, 1, 2], { message: "Type of user must be 0 (Staff), 1 (Intership), or 2 (Collaborator)" })
   @Transform(({ value }) => value === null ? undefined : Number(value))
   type?: number;
 
@@ -259,7 +259,7 @@ export class UpdateUserDto {
   @IsOptional()
   @IsNumber()
   @IsInt()
-  @IsIn([0, 1])
+  @IsIn([0, 1], { message: "Sex must be 0 (Male) or 1 (Female)" })
   sex?: number;
 
   @IsOptional()
@@ -285,7 +285,7 @@ export class UpdateUserDto {
   @IsOptional()
   @IsNumber()
   @IsInt()
-  @IsIn([0, 1, 2])
+  @IsIn([0, 1, 2], { message: "Type of user must be 0 (Staff), 1 (Intership), or 2 (Collaborator)" })
   @Transform(({ value }) => value === null ? undefined : Number(value))
   type?: number;
 

@@ -23,7 +23,9 @@ export class ProjectUserDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @IsIn([0, 1, 2, 3])
+  @IsIn([0, 1, 2, 3], {
+    message: "Project user type must be 0 (Member), 1 (PM), 2 (Shadow), or 3 (Deactive)"
+  })
   type: number;
 
   @IsNotEmpty()
@@ -78,7 +80,9 @@ export class ProjectDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @IsIn([0, 1, 2, 3, 4, 5, 6])
+  @IsIn([0, 1, 2, 3, 4, 5, 6], {
+    message: "Project type must be one of the following values: 0 (T&M), 1 (FixedPrice), 2 (NonBill), 3 (ODC), 4 (Product), 5 (Training), 6 (NoSalary)"
+  })
   projectType: number = 1;
 
   @IsOptional()
@@ -98,13 +102,13 @@ export class ProjectDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @IsIn([0, 1])
+  @IsIn([0, 1], { message: 'Project status must be 0 (Active) or 1 (Deactive)' })
   status: number = 0;
 
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  @IsIn([0, 1, 2])
+  @IsIn([0, 1], { message: 'Notify channel must be 0 (KOMU) or 1 (Mezon)' })
   notifyChannel: number = 0;
 
   @IsOptional()
