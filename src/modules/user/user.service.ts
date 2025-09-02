@@ -196,9 +196,14 @@ export class UserService {
       
       // Check if role exists
       const roleData = await this.repositories.role.getRoleByName(role) as any;
+      if (!roleData) {
+        throw new Error(`Role ${role} does not exist`);
+      }
 
       // Check if user_role already exists
-      const existingUserRole = await this.repositories.userRole.findOne({ where: { userId: userId, roleId: roleData['id'] } });
+      const existingUserRole = await this.repositories.userRole.findOne({ 
+        where: { userId: userId, roleId: roleData['id'] } 
+      });
       if (existingUserRole) {
         await this.repositories.userRole.remove(existingUserRole);
       } else {
@@ -212,32 +217,26 @@ export class UserService {
   }
 
   async updateRole(updateRole: UpdateRoleDto): Promise<object | null> {
-    try {
-      const { id, roleNames } = updateRole;
+    const { id, roleNames } = updateRole;
 
-      // Check if user exists
-      if(!await this.getUserById(id)) {
-        throw new Error(`User with ID ${id} does not exist`);
-      }
-      
-      // Check if role exists
-      for (const role of roleNames) {
-        if (!await this.repositories.role.getRoleByNormalizedName(role)) {
-          throw new Error(`Role ${role} does not exist`);
-        }
-      }
-
-      const roleIdsNoFilter = await Promise.all(roleNames.map(async (roleName: string) => {
-        const role = await this.repositories.role.getRoleByNormalizedName(roleName);
-        return role ? role.id : null;
-      }));
-
-      const roleIds = roleIdsNoFilter.filter((id, index) => id !== null && roleIdsNoFilter.indexOf(id) === index) as number[];
-
-      return await this.repositories.userRole.updateUserRoles(id, roleIds);
-    } catch (error) {
-      throw new BadRequestException(error.message);
+    // Check if user exists
+    if(!await this.getUserById(id)) throw new BadRequestException(`User with ID ${id} does not exist`);
+    
+    // Check if role exists
+    const allRoles = await this.repositories.role.getAllRolesWithRelations();
+    const allRoleNames = allRoles ? allRoles.map((r: any) => r.normalizedName) : [];
+    for (const role of roleNames) {
+      if (!allRoleNames.includes(role)) throw new BadRequestException(`Role ${role} does not exist`);
     }
+
+    const roleIds = roleNames
+      .map((roleName: string) => {
+        const role = allRoles.find((r: any) => r.normalizedName === roleName);
+        return role ? role.id : null;
+      })
+      .filter((id, index, arr) => id !== null && arr.indexOf(id) === index) as number[];
+
+    return await this.repositories.userRole.updateUserRoles(id, roleIds);
   }
 
   async updateAvatar(id: number, file: Express.Multer.File): Promise<string | null> {
