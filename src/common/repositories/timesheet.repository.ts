@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { BaseRepository } from 'src/common/base/base.repository';
 import { Timesheet } from 'src/common/database/entities';
 
@@ -11,11 +11,18 @@ export class TimesheetRepository extends BaseRepository<Timesheet> {
 
   commonQuery() {
     return this.createQueryBuilder('timesheet')
-    .leftJoinAndSelect('timesheet.user', 'user')
-    .leftJoinAndSelect('timesheet.projectTask', 'projectTask')
-    .leftJoinAndSelect('timesheet.approver', 'approver')
-    .leftJoinAndSelect('timesheet.targetTimesheet', 'targetTimesheet')
-    .leftJoinAndSelect('timesheet.shadowTimesheets', 'shadowTimesheets');
+      .leftJoinAndSelect('timesheet.user', 'user')
+      .leftJoinAndSelect('timesheet.projectTask', 'projectTask')
+      .leftJoinAndSelect('timesheet.approver', 'approver')
+      .leftJoinAndSelect('timesheet.targetTimesheet', 'targetTimesheet')
+      .leftJoinAndSelect('timesheet.shadowTimesheets', 'shadowTimesheets')
+      .leftJoinAndSelect('projectTask.project', 'project')
+      .leftJoinAndSelect('projectTask.task', 'task')
+      .leftJoinAndSelect('project.projectUsers', 'projectUsers');
+  }
+
+  async getTimesheetsWithProjectTaskIds(projectTaskId: number[]): Promise<Timesheet[]> {
+    return this.commonQuery().where({ projectTaskId: In(projectTaskId) }).getMany();
   }
 
   async findByUserId(userId: number): Promise<Timesheet[]> {
@@ -49,6 +56,12 @@ export class TimesheetRepository extends BaseRepository<Timesheet> {
     return this.commonQuery()
       .where('timesheet.id = :timesheetId', { timesheetId })
       .getOne();
+  }
+
+  async findByTimesheetIds(timesheetIds: number[]): Promise<Timesheet[]> {
+    return this.commonQuery()
+      .where({ id: In(timesheetIds) })
+      .getMany();
   }
 
   async saveTimesheet(timesheet: Partial<Timesheet>): Promise<Timesheet> {

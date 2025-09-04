@@ -9,8 +9,16 @@ export class ProjectTargetUserRepository extends BaseRepository<ProjectTargetUse
     super(dataSource, ProjectTargetUser);
   }
 
+  commonQuery() {
+    return this.createQueryBuilder('projectTargetUser')
+      .leftJoinAndSelect('projectTargetUser.project', 'project')
+      .leftJoinAndSelect('projectTargetUser.user', 'user');
+  }
+
   async getProjectTargetUsersByProjectId(projectId: number): Promise<ProjectTargetUser[]> {
-    return this.findAll({ where: { projectId: projectId } });
+    return this.commonQuery()
+      .where('projectTargetUser.projectId = :projectId', { projectId })
+      .getMany();
   }
 
   async saveProjectTargetUsers(projectTargetUsers: Partial<ProjectTargetUser>[]): Promise<ProjectTargetUser[]> {
