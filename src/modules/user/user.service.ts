@@ -482,10 +482,7 @@ export class UserService {
       if (!user) throw new Error(`User with ID ${id} does not exist`);
 
       if (userName && userName !== user.userName) {
-        if (await this.repositories.user.getUserByUsername(userName)) {
-          throw new Error(`Username ${userName} is already taken`);
-        }
-        user.userName = userName;
+        throw new Error('Username cannot be changed');
       }
 
       if (emailAddress && emailAddress !== user.emailAddress) {
