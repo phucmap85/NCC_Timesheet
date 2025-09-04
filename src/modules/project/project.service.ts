@@ -204,8 +204,10 @@ export class ProjectService {
         }
 
         // Validate timeStart and timeEnd
-        const startDate = new Date(timeStart);
-        const endDate = new Date(timeEnd);
+        const startDateWFormat = new Date(new Date(timeStart).getTime() + 7 * 60 * 60 * 1000);
+        const startDate = new Date(startDateWFormat.toISOString().split('T')[0]);
+        const endDateWFormat = new Date(new Date(timeEnd).getTime() + 7 * 60 * 60 * 1000);
+        const endDate = new Date(endDateWFormat.toISOString().split('T')[0]);
         const now = new Date();
         
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -221,8 +223,8 @@ export class ProjectService {
           isNoticeKMRequestOffDate, isNoticeKMApproveRequestOffDate,
           isNoticeKMRequestChangeWorkingTime, isNoticeKMApproveChangeWorkingTime,
           isAllUserBelongTo, isAllowTeamBuilding,
-          timeStart: timeStart ? new Date(timeStart) : undefined,
-          timeEnd: timeEnd ? new Date(timeEnd) : undefined
+          timeStart: startDate ? startDate : undefined,
+          timeEnd: endDate ? endDate : undefined
         };
 
         const savedProject = await this.repositories.project.saveProject(newProject);
@@ -286,16 +288,28 @@ export class ProjectService {
       }
 
       // Validate timeStart and timeEnd
-      const startDate = new Date(timeStart);
-      const endDate = new Date(timeEnd);
+      const startDateWFormat = new Date(new Date(timeStart).getTime() + 7 * 60 * 60 * 1000);
+      const startDate = new Date(startDateWFormat.toISOString().split('T')[0]);
+      const endDateWFormat = new Date(new Date(timeEnd).getTime() + 7 * 60 * 60 * 1000);
+      const endDate = new Date(endDateWFormat.toISOString().split('T')[0]);
       if (endDate < startDate) throw new Error('End time must be after start time');
+
+      // Validate cannot change project if timesheets have been logged
+      const existingProjectTasks = await this.repositories.projectTask.getProjectTasksByProjectId(id);
+      const filteredProjectTasks = existingProjectTasks.filter(pt => !tasks.some(t => t.taskId === pt.taskId));
+      const allTimesheets = await this.repositories.timesheet.getTimesheetsWithProjectTaskIds(
+        filteredProjectTasks.map(pt => pt.id)
+      );
+      if(allTimesheets && allTimesheets.length > 0) {
+        throw new Error('Some tasks cannot be removed because timesheets have been logged under these tasks');
+      }
 
       // Update project fields
       project.name = name;
       project.code = code;
       project.status = status;
-      project.timeStart = timeStart ? new Date(timeStart) : undefined as any;
-      project.timeEnd = timeEnd ? new Date(timeEnd) : undefined as any;
+      project.timeStart = startDate ? startDate : undefined as any;
+      project.timeEnd = endDate ? endDate : undefined as any;
       project.note = note || undefined as any;
       project.projectType = projectType;
       project.customerId = customerId;
@@ -325,14 +339,31 @@ export class ProjectService {
       }
 
       // Update project tasks
-      await this.repositories.projectTask.deleteByProjectId(id);
+      // Delete only tasks that are not in the new tasks list (filteredProjectTasks)
+      if (filteredProjectTasks && filteredProjectTasks.length > 0) {
+        await this.repositories.projectTask.deleteByProjectTaskIds(
+          filteredProjectTasks.map(pt => pt.id)
+        );
+      }
+      // Upsert tasks from the new tasks list
       if (tasks && tasks.length > 0) {
-        const projectTasks = tasks.map(task => ({
-          projectId: id,
-          taskId: task.taskId,
-          billable: task.billable
-        }));
-        await this.repositories.projectTask.saveProjectTasks(projectTasks);
+        const updateTasks = existingProjectTasks
+          .filter(pt => tasks.some(t => t.taskId === pt.taskId))
+          .map(ut => {
+            const matchedTask = tasks.find(t => t.taskId === ut.taskId);
+            if (matchedTask) ut.billable = matchedTask.billable;
+            return ut;
+          });
+        
+        await this.repositories.projectTask.saveProjectTasks(updateTasks);
+
+        const newTasks = tasks.filter(t => !existingProjectTasks.some(pt => pt.taskId === t.taskId))
+          .map(t => ({
+            projectId: id,
+            taskId: t.taskId,
+            billable: t.billable
+          }));
+        await this.repositories.projectTask.saveProjectTasks(newTasks);
       }
 
       // Update project target users
@@ -388,6 +419,15 @@ export class ProjectService {
     try {
       const project = await this.repositories.project.getProjectById(id);
       if (!project) throw new Error("Project not found");
+
+      // Validate cannot change project if timesheets have been logged
+      const projectTasks = await this.repositories.projectTask.getProjectTasksByProjectId(id);
+      const allTimesheets = await this.repositories.timesheet.getTimesheetsWithProjectTaskIds(
+        projectTasks.map(pt => pt.id)
+      );
+      if(allTimesheets && allTimesheets.length > 0) {
+        throw new Error('Cannot delete project because timesheets have been logged under this project');
+      }
 
       return await this.repositories.project.deleteProjectById(id);
     } catch (error) {

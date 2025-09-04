@@ -10,6 +10,7 @@ import {
 } from './my-timesheets.dto';
 import { Timesheet } from 'src/common/database/entities';
 import { plainToInstance } from 'class-transformer';
+import { startOfWeek } from 'date-fns';
 import { convertTimeStringToMinutes } from 'src/common/utils/converters/time-string.converter';
 
 @Injectable()
@@ -147,6 +148,19 @@ export class MyTimesheetsService {
       throw new BadRequestException('Total working time in a day cannot exceed 16 hours');
     }
 
+    // Validate dateAt is not in the past week
+    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const startOfCurrentWeekVN = new Date(startOfCurrentWeek.getTime() + 7 * 60 * 60 * 1000);
+    if (timesheet.dateAt < startOfCurrentWeekVN) {
+      throw new BadRequestException(`Timesheet was locked! 
+      You can log timesheet begin: ${startOfCurrentWeekVN.toISOString().split('T')[0]}`);
+    }
+
+    // Validate dateAt is not in Project's duration
+    if (timesheet.dateAt < new Date(project.timeStart) || timesheet.dateAt > new Date(project.timeEnd)) {
+      throw new BadRequestException(`Timesheet date must be within the project's duration`);
+    }
+
     // Add working time for target user if projectTargetUserId is provided
     let targetTimesheetId: number | null = null;
     if (timesheet.projectTargetUserId) {
@@ -181,6 +195,9 @@ export class MyTimesheetsService {
     userId: number,
     timesheet: UpdateMyTimesheetDto
   ): Promise<TimesheetDto | null> {
+    // Validate timesheet status
+    if (timesheet.status === 2) throw new BadRequestException('Cannot update approved timesheet');
+
     // Validate timesheetId
     const existingTimesheet = await this.repositories.timesheet.findByTimesheetId(timesheet.id);
     if (!existingTimesheet) {
@@ -220,6 +237,19 @@ export class MyTimesheetsService {
     const warning = await this.warningMyTimesheet(userId, timesheet.id, timesheet.dateAt, timesheet.workingTime) as any;
     if (convertTimeStringToMinutes(warning.workingTimeLogged) + timesheet.workingTime > 16 * 60) {
       throw new BadRequestException('Total working time in a day cannot exceed 16 hours');
+    }
+    
+    // Validate dateAt is not in the past week
+    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const startOfCurrentWeekVN = new Date(startOfCurrentWeek.getTime() + 7 * 60 * 60 * 1000);
+    if (timesheet.dateAt < startOfCurrentWeekVN) {
+      throw new BadRequestException(`Timesheet was locked! 
+      You can log timesheet begin: ${startOfCurrentWeekVN.toISOString().split('T')[0]}`);
+    }
+
+    // Validate dateAt is not in Project's duration
+    if (timesheet.dateAt < new Date(project.timeStart) || timesheet.dateAt > new Date(project.timeEnd)) {
+      throw new BadRequestException(`Timesheet date must be within the project's duration`);
     }
 
     // Remove old target timesheet
@@ -270,9 +300,7 @@ export class MyTimesheetsService {
     userId: number,
     timesheets: saveListDto[]
   ): Promise<TimesheetDto[]> {
-    if (timesheets.length === 0) {
-      throw new BadRequestException('Timesheet list is empty');
-    }
+    if (timesheets.length === 0) throw new BadRequestException('Timesheet list is empty');
 
     const project = await this.repositories.project.getProjectByProjectTaskId(timesheets[0].projectTaskId);
     if (!project) {
@@ -300,7 +328,7 @@ export class MyTimesheetsService {
     endDate: Date
   ): Promise<string> {
     const timesheets = await this.getAllTimeSheetOfUser(userId, startDate, endDate) as any[];
-    
+
     let cnt = 0;
     for (const ts of timesheets) {
       if (ts.status === 0 || ts.status === 3) {

@@ -40,13 +40,13 @@ export class Timesheet {
   @Column({ type: 'boolean', default: false })
   isTemp: boolean;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'timestamp' })
   dateAt: Date;
 
   @CreateDateColumn({ select: false })
   createdAt: Date;
 
-  @UpdateDateColumn({ select: false })
+  @UpdateDateColumn()
   updatedAt: Date;
 
   @DeleteDateColumn({ select: false })

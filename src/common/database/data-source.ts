@@ -16,7 +16,7 @@ export const dataSourceOptions: DataSourceOptions = {
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE,
   synchronize: false,
-  timezone: 'Asia/Ho_Chi_Minh', // Vietnam timezone
+  timezone: '+07:00', // Vietnam timezone
   charset: 'utf8mb4',
   entities: [
     Role, RolePermission, UserRole, Branch, Position, Client,
