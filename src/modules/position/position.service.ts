@@ -104,11 +104,11 @@ export class PositionService {
       const position = await this.repositories.position.getPositionById(id);
       if (!position) throw new Error(`Position not found`);
 
-      try {
-        return await this.repositories.position.removePosition(position);
-      } catch (error) {
+      if (position.users && position.users.length > 0) {
         throw new Error(`Position ID ${id} has users assigned, cannot be deleted`);
-      }      
+      }
+
+      return await this.repositories.position.removePosition(position);    
     } catch (error) {
       throw new BadRequestException(error.message);
     }

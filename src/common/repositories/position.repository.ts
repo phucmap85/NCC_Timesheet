@@ -9,20 +9,24 @@ export class PositionRepository extends BaseRepository<Position> {
     super(dataSource, Position);
   }
 
+  commonQuery() {
+    return this.createQueryBuilder("position").leftJoinAndSelect("position.users", "users");
+  }
+
   async getPositionById(id: number): Promise<Position | null> {
-    return this.findOne({ where: { id: id } });
+    return await this.commonQuery().where("position.id = :id", { id }).getOne();
   }
 
   async getPositionByName(name: string): Promise<Position | null> {
-    return this.findOne({ where: { name: name } });
+    return await this.commonQuery().where("position.name = :name", { name }).getOne();
   }
 
   async getPositionByShortName(shortName: string): Promise<Position | null> {
-    return this.findOne({ where: { shortName: shortName } });
+    return await this.commonQuery().where("position.shortName = :shortName", { shortName }).getOne();
   }
 
   async getPositionByCode(code: string): Promise<Position | null> {
-    return this.findOne({ where: { code: code } });
+    return await this.commonQuery().where("position.code = :code", { code }).getOne();
   }
 
   async savePosition(position: Partial<Position>): Promise<Position> {
