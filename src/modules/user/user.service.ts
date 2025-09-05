@@ -376,23 +376,11 @@ export class UserService {
   async createUser(createUser: CreateUserDto): Promise<object | null> {
     try {
       const {
-        userName,
-        password,
-        name,
-        surname,
-        emailAddress,
-        phoneNumber,
-        positionId,
-        branchId,
-        managerId,
-        isActive,
-        isWorkingTimeDefault,
-        morningWorking,
-        morningStartAt,
-        morningEndAt,
-        afternoonWorking,
-        afternoonStartAt,
-        afternoonEndAt,
+        userName, password, name, surname, emailAddress, phoneNumber,
+        positionId, branchId, managerId,
+        isActive, isWorkingTimeDefault,
+        morningWorking, morningStartAt, morningEndAt,
+        afternoonWorking, afternoonStartAt, afternoonEndAt,
         roleNames
       } = createUser;
 
@@ -431,8 +419,7 @@ export class UserService {
           morningWorking, morningStartAt, morningEndAt,
           afternoonWorking, afternoonStartAt, afternoonEndAt
         );
-      }
-      else {
+      } else {
         if (!branchId) throw new Error('Please provide branchId to set default working time');
         const branch = await this.repositories.branch.getBranchById(branchId);
         if (!branch) throw new Error(`Branch with ID ${branchId} does not exist`);
@@ -448,7 +435,20 @@ export class UserService {
       createUser.fullName = `${name} ${surname}`;
       createUser.password = await bcrypt.hash(password, 12);
 
-      return await this.repositories.user.saveUser(createUser as any);
+      const user = await this.repositories.user.saveUser(createUser as any);
+
+      const projectsWithAllUserBelongTo = await this.repositories.project.getProjectsAllUserBelongTo();
+      if (projectsWithAllUserBelongTo && projectsWithAllUserBelongTo.length > 0) {
+        for (const project of projectsWithAllUserBelongTo) {
+          await this.repositories.projectUser.saveProjectUsers([{
+            userId: user.id,
+            projectId: project.id,
+            type: 0
+          }]);
+        }
+      }
+
+      return user;
     } catch (error) {
       throw new BadRequestException(error.message);
     }

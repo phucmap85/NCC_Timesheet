@@ -61,6 +61,12 @@ export class ProjectRepository extends BaseRepository<Project> {
       .getMany();
   }
 
+  async getProjectsAllUserBelongTo(): Promise<Project[]> {
+    return this.commonQuery()
+      .where("project.isAllUserBelongTo = :true", { true: true })
+      .getMany();
+  }
+
   async saveProject(project: Partial<Project>): Promise<Project> {
     return await this.withTransaction(async (manager) => {
       return await this.saveWithTransaction(project, manager);
