@@ -120,6 +120,7 @@ export class TimesheetService {
     }
 
     const query = this.repositories.timesheet.createQueryBuilder('timesheet')
+      .leftJoinAndSelect('timesheet.user', 'user')
       .leftJoinAndSelect('timesheet.shadowTimesheets', 'shadowTimesheets')
       .leftJoinAndSelect('timesheet.projectTask', 'projectTask')
       .leftJoinAndSelect('projectTask.project', 'project')
