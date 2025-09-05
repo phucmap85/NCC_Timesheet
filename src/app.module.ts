@@ -25,6 +25,7 @@ import { TimesheetProjectModule } from './modules/timesheet-project/timesheet-pr
 import { GlobalRepositoryModule } from 'src/common/repositories';
 import { AppService } from 'src/app.service';
 import { AuthGuard } from 'src/common/guards/auth.guard';
+import { PermissionGuard } from 'src/common/guards/permission.guard';
 import { AuthMiddleware } from 'src/common/middlewares/auth.middleware';
 
 @Module({
@@ -58,6 +59,10 @@ import { AuthMiddleware } from 'src/common/middlewares/auth.middleware';
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionGuard,
     },
     AppService,
   ],

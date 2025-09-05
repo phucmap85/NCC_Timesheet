@@ -3,12 +3,15 @@ import type { Request as ExpressRequest } from 'express';
 import { TimesheetService } from 'src/modules/timesheet/timesheet.service';
 import { GetAllDto, ResponseApproveTimesheetsDto, ResponseGetAllDto, ResponseGetQuantityDto, ResponseGetTimesheetWarningDto, ResponseRejectTimesheetsDto } from './timesheet.dto';
 import { ApiOkResponse } from '@nestjs/swagger';
+import { Permissions } from 'src/common/constants/enum';
+import { HasPermissions } from 'src/common/decorators/permisson.decorator';
 
 @Controller('Timesheet')
 export class TimesheetController {
   constructor(private readonly timesheetService: TimesheetService) {}
   
   @Get("GetAll")
+  @HasPermissions(Permissions.Timesheet, Permissions.Timesheet_View)
   @ApiOkResponse({ type: [ResponseGetAllDto] })
   async getAll(
     @Query() getAll: GetAllDto,
@@ -18,6 +21,7 @@ export class TimesheetController {
   }
 
   @Get("GetQuantiyTimesheetStatus")
+  @HasPermissions(Permissions.Timesheet, Permissions.Timesheet_ViewStatus)
   @ApiOkResponse({ type: [ResponseGetQuantityDto] })
   async getQuantiyTimesheetStatus(
     @Query() getAll: GetAllDto,
@@ -27,6 +31,7 @@ export class TimesheetController {
   }
 
   @Post("GetTimesheetWarning")
+  @HasPermissions(Permissions.Timesheet, Permissions.Timesheet_View)
   @HttpCode(200)
   @ApiOkResponse({ type: [ResponseGetTimesheetWarningDto] })
   async getTimesheetWarning(@Body() timesheetIds: number[]): Promise<ResponseGetTimesheetWarningDto[]> {
@@ -34,6 +39,7 @@ export class TimesheetController {
   }
 
   @Post("ApproveTimesheets")
+  @HasPermissions(Permissions.Timesheet, Permissions.Timesheet_Approval)
   @HttpCode(200)
   @ApiOkResponse({ type: ResponseApproveTimesheetsDto })
   async approveTimesheets(
@@ -44,6 +50,7 @@ export class TimesheetController {
   }
 
   @Post("RejectTimesheets")
+  @HasPermissions(Permissions.Timesheet, Permissions.Timesheet_Approval)
   @HttpCode(200)
   @ApiOkResponse({ type: ResponseRejectTimesheetsDto })
   async rejectTimesheets(

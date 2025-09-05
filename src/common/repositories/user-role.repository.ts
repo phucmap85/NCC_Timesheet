@@ -9,16 +9,20 @@ export class UserRoleRepository extends BaseRepository<UserRole> {
     super(dataSource, UserRole);
   }
 
-  async getUserRolesByUserId(userId: number): Promise<UserRole[]> {
+  commonQuery() {
     return this.createQueryBuilder("userRole")
-      .leftJoinAndSelect("userRole.role", "role")
+      .leftJoinAndSelect("userRole.user", "user")
+      .leftJoinAndSelect("userRole.role", "role");
+  }
+
+  async getUserRolesByUserId(userId: number): Promise<UserRole[]> {
+    return this.commonQuery()
       .where("userRole.userId = :userId", { userId })
       .getMany();
   }
 
   async getUserRolesByRoleId(roleId: number): Promise<UserRole[]> {
-    return this.createQueryBuilder("userRole")
-      .leftJoinAndSelect("userRole.user", "user")
+    return this.commonQuery()
       .where("userRole.roleId = :roleId", { roleId })
       .getMany();
   }
@@ -40,6 +44,12 @@ export class UserRoleRepository extends BaseRepository<UserRole> {
   async getUserIdsByRoleIds(roleIds: number[]): Promise<number[]> {
     const userRoles = await this.findAll({ where: { roleId: In(roleIds) } });
     return [...new Set(userRoles.map(ur => ur.userId))];
+  }
+  
+  async getUsersWithRoleDetails(roleId: number): Promise<UserRole[]> {
+    return this.commonQuery()
+      .where("userRole.roleId = :roleId", { roleId })
+      .getMany();
   }
 
   async deleteUserRolesByUserId(userId: number): Promise<void> {
@@ -120,13 +130,5 @@ export class UserRoleRepository extends BaseRepository<UserRole> {
 
   async hasUserRole(userId: number, roleId: number): Promise<boolean> {
     return await this.exists({ where: { userId, roleId } });
-  }
-
-  async getUsersWithRoleDetails(roleId: number): Promise<UserRole[]> {
-    return this.createQueryBuilder("userRole")
-      .leftJoinAndSelect("userRole.user", "user")
-      .leftJoinAndSelect("userRole.role", "role")
-      .where("userRole.roleId = :roleId", { roleId })
-      .getMany();
   }
 }

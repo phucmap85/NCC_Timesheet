@@ -7,12 +7,15 @@ import {
   ResponseGetTimesheetStatisticTeamsDto,
   ResponseExportBillableTimesheetsDto
 } from './timesheet-project.dto';
+import { Permissions } from 'src/common/constants/enum';
+import { HasPermissions } from 'src/common/decorators/permisson.decorator';
 
 @Controller('TimeSheetProject')
 export class TimesheetProjectController {
   constructor(private readonly timesheetProjectService: TimesheetProjectService) {}
 
   @Get("GetTimeSheetStatisticTasks")
+  @HasPermissions(Permissions.Project, Permissions.Project_View)
   @ApiOkResponse({ type: [ResponseGetTimesheetStatisticTasksDto] })
   async getTimesheetStatisticTasks(
     @Query() req: GetTimesheetStatisticDto
@@ -21,6 +24,7 @@ export class TimesheetProjectController {
   }
 
   @Get("GetTimeSheetStatisticTeams")
+  @HasPermissions(Permissions.Project, Permissions.Project_View)
   @ApiOkResponse({ type: [ResponseGetTimesheetStatisticTeamsDto] })
   async getTimesheetStatisticTeams(
     @Query() req: GetTimesheetStatisticDto
@@ -29,6 +33,7 @@ export class TimesheetProjectController {
   }
 
   @Get("ExportBillableTimesheets")
+  @HasPermissions(Permissions.Project, Permissions.Project_Export)
   @ApiOkResponse({ type: [ResponseExportBillableTimesheetsDto] })
   async exportBillableTimesheets(
     @Query() req: GetTimesheetStatisticDto

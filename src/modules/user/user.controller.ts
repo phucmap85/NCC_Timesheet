@@ -27,12 +27,15 @@ import {
   CreateUserDto,
   UpdateUserDto
 } from 'src/modules/user/user.dto';
+import { Permissions } from 'src/common/constants/enum';
+import { HasPermissions } from 'src/common/decorators/permisson.decorator';
 
 @Controller('User')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post("GetAllPagging")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_View)
   @HttpCode(200)
   async getAllPagging(@Body() getAllPaggingDto: GetAllPaggingDto): Promise<object | null> {
     const {
@@ -46,48 +49,57 @@ export class UserController {
   }
 
   @Get("GetUserNotPagging")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_View)
   async getUserNotPagging(): Promise<object | null> {
     return await this.userService.getUserNotPagging();
   }
 
   @Get("GetAllManager")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_View)
   async getAllManager(): Promise<object | null> {
     return await this.userService.getAllManager();
   }
 
   @Get("Get")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_View)
   async getUserById(@Query('Id', ParseIntPipe) id: number): Promise<object | null> {
     return await this.userService.getUserById(id);
   }
 
   @Get("GetRoles")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Roles, Permissions.Admin_Roles_View)
   async getRoles(): Promise<object | null> {
     return await this.userService.getRoles();
   }
 
   @Get("GetUserAvatarById")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_View)
   async getUserAvatarById(@Query('id', ParseIntPipe) id: number): Promise<object | null> {
     return await this.userService.getUserAvatarById(id);
   }
 
   @Get("GetUserEmailById")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_View)
   async getUserEmailById(@Query('id', ParseIntPipe) id: number): Promise<string | null> {
     return await this.userService.getUserEmailById(id);
   }
 
   @Post("ChangeUserRole")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_EditRole)
   @HttpCode(200)
   async changeUserRole(@Body() userRole: UserRoleDto): Promise<object | null> {
     return await this.userService.changeUserRole(userRole);
   }
 
   @Put("UpdateRole")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_EditRole)
   @HttpCode(200)
   async updateRole(@Body() updateRole: UpdateRoleDto): Promise<object | null> {
     return await this.userService.updateRole(updateRole);
   }
 
   @Post("UpdateAvatar")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_UploadAvatar)
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: 'public/avatars',
@@ -136,6 +148,7 @@ export class UserController {
   }
 
   @Post("ImportWorkingTimeFromFile")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_UploadWorkingTime)
   @UseInterceptors(FileInterceptor('File', {
     storage: diskStorage({
       destination: 'public/working-time',
@@ -159,36 +172,42 @@ export class UserController {
   }
 
   @Post("Create")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_AddNew)
   @HttpCode(200)
   async createUser(@Body() createUser: CreateUserDto): Promise<object | null> {
     return await this.userService.createUser(createUser);
   }
 
   @Put("Update")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_Edit)
   @HttpCode(200)
   async updateUser(@Body() updateUser: UpdateUserDto): Promise<object | null> {
     return await this.userService.updateUser(updateUser);
   }
 
   @Post("ResetPassword")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_ResetPassword)
   @HttpCode(200)
   async resetPassword(@Body() resetPassword: ResetPasswordDto): Promise<boolean | null> {
     return await this.userService.resetPassword(resetPassword);
   }
 
   @Post("ActiveUser")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_ChangeStatus)
   @HttpCode(200)
   async activeUser(@Body('id', ParseIntPipe) id: number): Promise<object | null> {
     return await this.userService.activeUser(id);
   }
 
   @Post("DeactiveUser")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_ChangeStatus)
   @HttpCode(200)
   async deactiveUser(@Body('id', ParseIntPipe) id: number): Promise<object | null> {
     return await this.userService.deactiveUser(id);
   }
 
   @Delete("Delete")
+  @HasPermissions(Permissions.Admin, Permissions.Admin_Users, Permissions.Admin_Users_Delete)
   async deleteUser(@Query('Id', ParseIntPipe) id: number): Promise<void> {
     return await this.userService.deleteUser(id);
   }

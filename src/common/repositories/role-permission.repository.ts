@@ -17,31 +17,6 @@ export class RolePermissionRepository extends BaseRepository<RolePermission> {
     return this.findAll({ where: { roleId: In(roleIds) } });
   }
 
-  async getRolePermissionByRoleAndKey(roleId: number, permissionKey: string): Promise<RolePermission | null> {
-    return this.findOne({ where: { roleId, permissionKey } });
-  }
-
-  async deletePermissionsByRoleId(roleId: number): Promise<void> {
-    await this.withTransaction(async (manager) => {
-      await this.deleteWithTransaction({ roleId }, manager);
-    });
-  }
-
-  async deletePermissionsByKeys(roleId: number, permissionKeys: string[]): Promise<void> {
-    await this.withTransaction(async (manager) => {
-      await this.deleteWithTransaction({ 
-        roleId, 
-        permissionKey: In(permissionKeys) 
-      }, manager);
-    });
-  }
-
-  async bulkInsertPermissions(rolePermissions: Partial<RolePermission>[]): Promise<void> {
-    await this.withTransaction(async (manager) => {
-      await this.saveMultipleWithTransaction(rolePermissions, manager);
-    });
-  }
-
   async updateRolePermissions(roleId: number, newPermissionKeys: string[]): Promise<RolePermission[]> {
     return await this.withTransaction(async (manager) => {
       // Get existing permissions
@@ -72,19 +47,5 @@ export class RolePermissionRepository extends BaseRepository<RolePermission> {
       // Return updated permissions
       return await this.findWithTransaction({ where: { roleId } }, manager);
     });
-  }
-
-  async getPermissionKeysForRole(roleId: number): Promise<string[]> {
-    const permissions = await this.getPermissionsByRoleId(roleId);
-    return permissions.map(p => p.permissionKey);
-  }
-
-  async getPermissionKeysForRoles(roleIds: number[]): Promise<string[]> {
-    const permissions = await this.getPermissionsByRoleIds(roleIds);
-    return [...new Set(permissions.map(p => p.permissionKey))];
-  }
-
-  async hasPermission(roleId: number, permissionKey: string): Promise<boolean> {
-    return await this.exists({ where: { roleId, permissionKey } });
   }
 }

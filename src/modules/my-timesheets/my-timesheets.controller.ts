@@ -10,12 +10,15 @@ import {
   UpdateMyTimesheetDto,
   WarningMyTimesheetDto
 } from './my-timesheets.dto';
+import { Permissions } from 'src/common/constants/enum';
+import { HasPermissions } from 'src/common/decorators/permisson.decorator';
 
 @Controller('MyTimesheets')
 export class MyTimesheetsController {
   constructor(private readonly myTimesheetsService: MyTimesheetsService) {}
 
   @Get("GetAllTimeSheetOfUser")
+  @HasPermissions(Permissions.MyTimesheet, Permissions.MyTimesheet_View)
   @ApiOkResponse({ type: GetAllTimeSheetOfUserDto, isArray: true })
   async getAllTimeSheetOfUser(
     @Query("startDate", new ParseDatePipe()) startDate: Date,
@@ -26,12 +29,14 @@ export class MyTimesheetsController {
   }
 
   @Get("Get")
+  @HasPermissions(Permissions.MyTimesheet, Permissions.MyTimesheet_View)
   @ApiOkResponse({ type: TimesheetDto })
   async getTimesheetById(@Query("id", ParseIntPipe) timesheetId: number): Promise<TimesheetDto | null> {
     return this.myTimesheetsService.getTimesheetById(timesheetId);
   }
 
   @Get("WarningMyTimesheet")
+  @HasPermissions(Permissions.MyTimesheet, Permissions.MyTimesheet_View)
   @ApiOkResponse({ type: WarningMyTimesheetDto })
   async warningMyTimesheet(
     @Query("dateAt", new ParseDatePipe()) dateAt: Date,
@@ -45,6 +50,7 @@ export class MyTimesheetsController {
   }
 
   @Post("Create")
+  @HasPermissions(Permissions.MyTimesheet, Permissions.MyTimesheet_AddNew)
   @HttpCode(200)
   @ApiOkResponse({ type: TimesheetDto })
   async createMyTimesheet(
@@ -55,6 +61,7 @@ export class MyTimesheetsController {
   }
 
   @Put("Update")
+  @HasPermissions(Permissions.MyTimesheet, Permissions.MyTimesheet_Edit)
   @HttpCode(200)
   @ApiOkResponse({ type: TimesheetDto })
   async updateMyTimesheet(
@@ -65,6 +72,7 @@ export class MyTimesheetsController {
   }
 
   @Post("SaveList")
+  @HasPermissions(Permissions.MyTimesheet, [Permissions.MyTimesheet_Edit, Permissions.MyTimesheet_AddNew])
   @HttpCode(200)
   async saveListMyTimesheet(
     @Body() timesheets: saveListDto[],
@@ -74,6 +82,7 @@ export class MyTimesheetsController {
   }
 
   @Post("SubmitToPending")
+  @HasPermissions(Permissions.MyTimesheet, Permissions.MyTimesheet_Submit)
   @HttpCode(200)
   @ApiOkResponse({ type: String })
   async submitToPending(
@@ -85,6 +94,7 @@ export class MyTimesheetsController {
   }
 
   @Delete("Delete")
+  @HasPermissions(Permissions.MyTimesheet, Permissions.MyTimesheet_Delete)
   @HttpCode(200)
   @ApiOkResponse({ type: Boolean })
   async deleteMyTimesheet(
