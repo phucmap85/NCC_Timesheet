@@ -9,20 +9,25 @@ export class BranchRepository extends BaseRepository<Branch> {
     super(dataSource, Branch);
   }
 
+  commonQuery() {
+    return this.createQueryBuilder("branch")
+      .leftJoinAndSelect("branch.users", "users");
+  }
+
   async getBranchById(id: number): Promise<Branch | null> {
-    return this.findOne({ where: { id: id } });
+    return await this.commonQuery().where("branch.id = :id", { id }).getOne();
   }
 
   async getBranchByName(name: string): Promise<Branch | null> {
-    return this.findOne({ where: { name: name } });
+    return await this.commonQuery().where("branch.name = :name", { name }).getOne();
   }
 
   async getBranchByCode(code: string): Promise<Branch | null> {
-    return this.findOne({ where: { code: code } });
+    return await this.commonQuery().where("branch.code = :code", { code }).getOne();
   }
 
   async getBranchByDisplayName(displayName: string): Promise<Branch | null> {
-    return this.findOne({ where: { displayName: displayName } });
+    return await this.commonQuery().where("branch.displayName = :displayName", { displayName }).getOne();
   }
 
   async saveBranch(branch: Partial<Branch>): Promise<Branch> {

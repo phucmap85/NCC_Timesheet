@@ -130,16 +130,16 @@ export class BranchService {
     }
   }
 
-  async deleteBranch(id: number) {
+  async deleteBranch(id: number): Promise<void> {
     try {
       const branch = await this.repositories.branch.getBranchById(id);
       if (!branch) throw new Error(`Branch not found`);
 
-      try {
-        await this.repositories.branch.removeBranch(branch);
-      } catch (error) {
+      if (branch.users && branch.users.length > 0) {
         throw new Error(`Branch ID ${id} has users assigned, cannot be deleted`);
       }
+      
+      return await this.repositories.branch.removeBranch(branch);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
