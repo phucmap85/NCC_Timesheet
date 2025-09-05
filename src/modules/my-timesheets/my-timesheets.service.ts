@@ -329,6 +329,15 @@ export class MyTimesheetsService {
   ): Promise<string> {
     const timesheets = await this.getAllTimeSheetOfUser(userId, startDate, endDate) as any[];
 
+    // Validate dateAt is not in the past
+    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const startOfCurrentWeekVN = new Date(startOfCurrentWeek.getTime() + 7 * 60 * 60 * 1000);
+    for (const ts of timesheets) {
+      if (ts.dateAt < startOfCurrentWeekVN) {
+        throw new BadRequestException(`Go to ims.nccsoft.vn > Unlock timesheet`);
+      }
+    }
+
     let cnt = 0;
     for (const ts of timesheets) {
       if (ts.status === 0 || ts.status === 3) {
@@ -364,6 +373,13 @@ export class MyTimesheetsService {
     }
     if (existingTimesheet.userId !== userId) {
       throw new BadRequestException(`Timesheet with ID ${timesheetId} does not belong to User with ID ${userId}`);
+    }
+
+    // Validate dateAt is not in the past
+    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const startOfCurrentWeekVN = new Date(startOfCurrentWeek.getTime() + 7 * 60 * 60 * 1000);
+    if (existingTimesheet.dateAt < startOfCurrentWeekVN) {
+      throw new BadRequestException(`Go to ims.nccsoft.vn > Unlock timesheet`);
     }
 
     // Validate status
