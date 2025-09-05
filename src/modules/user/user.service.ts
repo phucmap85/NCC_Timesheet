@@ -632,7 +632,11 @@ export class UserService {
 
   async deleteUser(id: number): Promise<void> {
     try {
-      const user = await this.repositories.user.findOne({ where: { id: id }, relations: ['subordinates', 'projectUsers', 'projectTargetUsers'] }) as User;
+      const user = await this.repositories.user.findOne({
+        where: { id: id }, 
+        relations: ['subordinates', 'projectUsers', 'projectTargetUsers', 'timesheets'] 
+      }) as User;
+
       if (!user) throw new Error(`User with ID ${id} does not exist`);
 
       // Check if user is a manager of other users
@@ -643,6 +647,11 @@ export class UserService {
       // Check if user has any projects
       if (user.projectUsers.length > 0 || user.projectTargetUsers.length > 0) {
         throw new Error(`Cannot delete user with ID ${id} because they are assigned to projects`);
+      }
+
+      // Check if user has any logged timesheets
+      if (user.timesheets && user.timesheets.length > 0) {
+        throw new Error(`Cannot delete user with ID ${id} because they have associated timesheets`);
       }
 
       return await this.repositories.user.removeUser(user);
