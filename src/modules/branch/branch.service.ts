@@ -123,6 +123,23 @@ export class BranchService {
       branch.afternoonWorking = afternoonWorking;
       branch.afternoonStartAt = afternoonStartAt;
       branch.afternoonEndAt = afternoonEndAt;
+
+      // Update users working time following branch changes
+      const users = await this.repositories.user.getUsersByBranchId(id);
+      const filteredUsers = users.filter(u => u.isWorkingTimeDefault);
+      
+      if(filteredUsers && filteredUsers.length > 0) {
+        for(const user of filteredUsers) {
+          user.morningWorking = morningWorking;
+          user.morningStartAt = morningStartAt;
+          user.morningEndAt = morningEndAt;
+          user.afternoonWorking = afternoonWorking;
+          user.afternoonStartAt = afternoonStartAt;
+          user.afternoonEndAt = afternoonEndAt;
+
+          await this.repositories.user.saveUser(user);
+        }
+      }
       
       return await this.repositories.branch.saveBranch(branch);
     } catch (error) {
