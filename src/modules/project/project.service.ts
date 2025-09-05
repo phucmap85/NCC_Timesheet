@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { In } from 'typeorm';
 import { ProjectDto } from 'src/modules/project/project.dto';
 import { RepositoryManager } from 'src/common/repositories';
+import { fi } from 'date-fns/locale';
 
 @Injectable()
 export class ProjectService {
@@ -294,14 +295,34 @@ export class ProjectService {
       const endDate = new Date(endDateWFormat.toISOString().split('T')[0]);
       if (endDate < startDate) throw new Error('End time must be after start time');
 
-      // Validate cannot change project if timesheets have been logged
+      // Validate cannot change project tasks if timesheets have been logged under those tasks
       const existingProjectTasks = await this.repositories.projectTask.getProjectTasksByProjectId(id);
+      const allTimesheets = await this.repositories.timesheet.getTimesheetsWithProjectTaskIds(existingProjectTasks.map(pt => pt.id));
+      
       const filteredProjectTasks = existingProjectTasks.filter(pt => !tasks.some(t => t.taskId === pt.taskId));
-      const allTimesheets = await this.repositories.timesheet.getTimesheetsWithProjectTaskIds(
-        filteredProjectTasks.map(pt => pt.id)
-      );
-      if(allTimesheets && allTimesheets.length > 0) {
+      const allFilteredTimesheets = allTimesheets.filter(ts => filteredProjectTasks.some(fpt => fpt.id === ts.projectTaskId));
+      if (allFilteredTimesheets && allFilteredTimesheets.length > 0) {
         throw new Error('Some tasks cannot be removed because timesheets have been logged under these tasks');
+      }
+
+      // Validate cannot change project users if timesheets have been logged under those users
+      const existingProjectUsers = await this.repositories.projectUser.getProjectUsersByProjectId(id);
+      const filteredProjectUsers = existingProjectUsers.filter(pu => !users.some(u => u.userId === pu.userId));
+      const timesheetsOfFilteredUsers = allTimesheets.filter(ts => filteredProjectUsers.some(fpu => fpu.userId === ts.userId));
+      if (timesheetsOfFilteredUsers && timesheetsOfFilteredUsers.length > 0) {
+        throw new Error('Some users cannot be removed because timesheets have been logged under these users');
+      }
+
+      // Validate cannot change project target users if timesheets have been logged under those target users
+      const existingProjectTargetUsers = await this.repositories.projectTargetUser.getProjectTargetUsersByProjectId(id);
+      const filteredProjectTargetUsers = projectTargetUsers && projectTargetUsers.length > 0 ? 
+        existingProjectTargetUsers.filter(ptu => !projectTargetUsers.some(ntu => ntu.userId === ptu.userId))
+        : existingProjectTargetUsers;
+      const timesheetsOfFilteredTargetUsers = allTimesheets.filter(ts => 
+        filteredProjectTargetUsers.some(fptu => ts.targetTimesheet && fptu.userId === ts.targetTimesheet.userId)
+      );
+      if (timesheetsOfFilteredTargetUsers && timesheetsOfFilteredTargetUsers.length > 0) {
+        throw new Error('Some target users cannot be removed because timesheets have been logged under these target users');
       }
 
       // Update project fields
