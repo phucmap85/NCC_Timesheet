@@ -34,7 +34,8 @@ export class TimesheetProjectService {
         .reduce((sum, ts) => sum + ts.workingTime, 0);
       
       const billableWorkingTime = pt.timesheets
-        .filter(ts => ts.status === 2 && ts.shadowTimesheets.length <= 0 &&
+        .filter(ts => ts.status === 2 && ts.shadowTimesheets.length <= 0 && 
+          pt.project.projectType !== 2 && pt.project.projectType !== 6 &&
           ((ts.typeOfWork === 0 && ts.billable) || (ts.typeOfWork === 1 && ts.isCharged))
         )
         .reduce((sum, ts) => sum + ts.workingTime, 0);
@@ -102,7 +103,8 @@ export class TimesheetProjectService {
           if (userStat) {
             userStat.totalWorkingTime += ts.workingTime;
 
-            if ((ts.typeOfWork === 0 && ts.billable) || (ts.typeOfWork === 1 && ts.isCharged)) {
+            if (pt.project.projectType !== 2 && pt.project.projectType !== 6 &&
+              ((ts.typeOfWork === 0 && ts.billable) || (ts.typeOfWork === 1 && ts.isCharged))) {
               userStat.billableWorkingTime += ts.workingTime;
             }
           }
@@ -132,7 +134,8 @@ export class TimesheetProjectService {
       pt.timesheets
         .filter(ts => ts.status === 2 && ts.shadowTimesheets.length <= 0)
         .forEach(ts => {
-          if ((ts.typeOfWork === 0 && ts.billable) || (ts.typeOfWork === 1 && ts.isCharged)) {
+          if (((ts.typeOfWork === 0 && ts.billable) || (ts.typeOfWork === 1 && ts.isCharged))
+            && pt.project.projectType !== 2 && pt.project.projectType !== 6) {
             response.push(plainToInstance(ResponseExportBillableTimesheetsDto, {
               ...ts,
               userName: ts.user?.name,
