@@ -457,24 +457,12 @@ export class UserService {
   async updateUser(updateUser: UpdateUserDto): Promise<object | null> {
     try {
       const {
-        id,
-        userName,
-        password,
-        name,
-        surname,
-        emailAddress,
-        phoneNumber,
-        positionId,
-        branchId,
-        managerId,
-        isActive,
-        isWorkingTimeDefault,
-        morningWorking,
-        morningStartAt,
-        morningEndAt,
-        afternoonWorking,
-        afternoonStartAt,
-        afternoonEndAt,
+        id, userName, password,
+        name, surname, emailAddress, phoneNumber,
+        positionId, branchId, managerId,
+        isActive, isWorkingTimeDefault,
+        morningWorking, morningStartAt, morningEndAt,
+        afternoonWorking, afternoonStartAt, afternoonEndAt,
         roleNames
       } = updateUser;
 
@@ -610,16 +598,6 @@ export class UserService {
 
       // Check if user is already deactivated
       if (!user.isActive) throw new Error(`User with ID ${userId} is already deactivated`);
-
-      // Check if user is a manager of other users
-      if (user.subordinates.length > 0) {
-        throw new Error(`Cannot deactivate user with ID ${userId} because they are a manager of other users`);
-      }
-
-      // Check if user has any projects
-      if (user.projectUsers.length > 0 || user.projectTargetUsers.length > 0) {
-        throw new Error(`Cannot deactivate user with ID ${userId} because they are assigned to projects`);
-      }
 
       user.isActive = false;
       await this.repositories.user.saveUser(user);

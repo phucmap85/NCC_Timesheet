@@ -16,6 +16,8 @@ export class AuthService {
       const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
       if (!isPasswordValid) throw new Error('Invalid username/email or password');
 
+      if (user.isActive === false) throw new Error('User is inactive');
+
       const payload = {
         ...user,
         "branch": 0,

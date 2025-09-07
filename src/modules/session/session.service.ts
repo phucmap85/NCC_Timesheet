@@ -21,7 +21,7 @@ export class SessionService {
 
     // Check if the Authorization header is present
     const token = header['authorization']?.split(' ')[1];
-    if(token) {
+    if (token) {
       try {
         const payload = await this.jwtService.verifyAsync(
           token, { secret: process.env.JWT_ACCESS_SECRET }
@@ -30,6 +30,7 @@ export class SessionService {
 
         const user = await this.repositories.user.getUserByUsernameOrEmail(payload.userName);
         if (!user) throw new Error("User not found");
+        if (user.isActive === false) throw new Error("User is inactive");
 
         userData = Object.assign({
           ...user,

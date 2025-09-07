@@ -15,8 +15,9 @@ export class AppService {
       await this.jwtService.verifyAsync(token, { secret: process.env.JWT_ACCESS_SECRET });
 
       // Fetch user
-      const user = req['user'];
+      const user = await this.repositories.user.getUserById(req['user'].id);
       if (!user) throw new Error("No user in request");
+      if (user.isActive === false) throw new Error("User is inactive");
 
       // Fetch user roles and permissions
       const userRoles = await this.repositories.userRole.findAll({ where: { userId: user.id } });
