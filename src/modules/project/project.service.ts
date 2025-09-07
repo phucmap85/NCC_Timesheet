@@ -2,7 +2,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { In } from 'typeorm';
 import { ProjectDto } from 'src/modules/project/project.dto';
 import { RepositoryManager } from 'src/common/repositories';
-import { fi } from 'date-fns/locale';
 
 @Injectable()
 export class ProjectService {
@@ -102,7 +101,10 @@ export class ProjectService {
     try {
       const projects = await this.repositories.project.getProjectsByUserId(userId);
 
-      return await Promise.all(projects.map(async project => {
+      // Filter out inactive projects
+      const activeProjects = projects.filter(project => project.status === 0);
+
+      return await Promise.all(activeProjects.map(async project => {
         const projectUsers = await this.repositories.projectUser.getProjectUsersByProjectId(project.id);
         
         return {

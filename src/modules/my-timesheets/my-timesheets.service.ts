@@ -59,6 +59,12 @@ export class MyTimesheetsService {
   async getTimesheetById(timesheetId: number): Promise<TimesheetDto | null> {
     const timesheet = await this.repositories.timesheet.findByTimesheetId(timesheetId);
     if (!timesheet) throw new BadRequestException(`Timesheet with ID ${timesheetId} not found`);
+
+    // Validate project is active (disable for demo) (error in UI)
+    if (timesheet.projectTask.project.status !== 0) {
+      throw new BadRequestException(`Project with ID ${timesheet.projectTask.project.id} is inactive`);
+    }
+
     return plainToInstance(TimesheetDto, {
       ...timesheet,
       projectTargetUserId: timesheet.targetTimesheet ? timesheet.targetTimesheet.userId : null,
@@ -116,6 +122,8 @@ export class MyTimesheetsService {
     // Validate projectId and projectTaskId
     const project = await this.repositories.project.getProjectById(timesheet.projectId);
     if (!project) throw new BadRequestException(`Project with ID ${timesheet.projectId} not found`);
+    if (project.status !== 0) throw new BadRequestException(`Cannot create timesheet for inactive project with ID ${timesheet.projectId}`);
+    
     const projectTask = project.projectTasks.find(pt => pt.id === timesheet.projectTaskId);
     if (!projectTask) {
       throw new BadRequestException(`Project task with ID ${timesheet.projectTaskId} not found in Project with ID ${timesheet.projectId}`);
@@ -204,9 +212,17 @@ export class MyTimesheetsService {
       throw new BadRequestException(`Timesheet with ID ${timesheet.id} not found`);
     }
 
-    // Validate projectId and projectTaskId
+    // Validate projectId
     const project = await this.repositories.project.getProjectById(timesheet.projectId);
     if (!project) throw new BadRequestException(`Project with ID ${timesheet.projectId} not found`);
+    
+    // If the project is changed, ensure the new project is active
+    const existingProject = existingTimesheet.projectTask.project;
+    if (existingProject.id !== project.id) {
+      if (project.status !== 0) throw new BadRequestException(`Cannot update timesheet for inactive project with ID ${timesheet.projectId}`);
+    }
+
+    // Validate projectTaskId
     const projectTask = project.projectTasks.find(pt => pt.id === timesheet.projectTaskId);
     if (!projectTask) {
       throw new BadRequestException(`Project task with ID ${timesheet.projectTaskId} not found in Project with ID ${timesheet.projectId}`);
