@@ -124,6 +124,7 @@ export class UserController {
   }
 
   @Post("UpdateYourOwnAvatar")
+  @HasPermissions(Permissions.MyProfile, Permissions.MyProfile_RequestUpdateInfo)
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: 'public/avatars',
