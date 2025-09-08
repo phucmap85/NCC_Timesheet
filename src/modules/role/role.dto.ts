@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, Length, IsNumber, IsInt } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Length, IsNumber, IsInt, Min, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class GetAllRolesDto {
@@ -19,24 +19,26 @@ export class RoleDto {
   @IsOptional()
   @IsNumber()
   @IsInt()
+  @Min(0)
   id?: number;
 
   @IsNotEmpty()
   @IsString()
-  @Length(1, 50)
+  @Length(1, 50, { message: 'Role name must be between 1 and 50 characters' })
   name: string;
 
   @IsNotEmpty()
   @IsString()
-  @Length(1, 100)
+  @Length(1, 100, { message: 'Role display name must be between 1 and 100 characters' })
   displayName: string;
 
   @IsOptional()
   @IsString()
-  @Length(1, 100)
+  @MaxLength(100, { message: 'Normalized name must be at most 100 characters' })
   normalizedName?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(255, { message: 'Description must be at most 255 characters' })
   description?: string;
 }

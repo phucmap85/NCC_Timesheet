@@ -10,7 +10,10 @@ import {
   IsIn,
   ValidateNested,
   IsDateString,
-  IsUrl
+  IsUrl,
+  Min,
+  Matches,
+  MaxLength
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -18,6 +21,7 @@ export class ProjectUserDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
+  @Min(0)
   userId: number = 0;
 
   @IsNotEmpty()
@@ -37,6 +41,7 @@ export class ProjectTaskDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
+  @Min(0)
   taskId: number = 0;
 
   @IsNotEmpty()
@@ -48,11 +53,12 @@ export class ProjectTargetUserDto {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
+  @Min(0)
   userId: number = 0;
 
   @IsOptional()
   @IsString()
-  @Length(0, 255)
+  @MaxLength(255, { message: 'Role name must be at most 255 characters' })
   roleName?: string;
 }
 
@@ -60,21 +66,24 @@ export class ProjectDto {
   @IsOptional()
   @IsNumber()
   @IsInt()
+  @Min(0)
   id?: number = 0;
 
   @IsNotEmpty()
   @IsString()
-  @Length(1, 255)
+  @Length(1, 255, { message: 'Project name must be between 1 and 255 characters' })
   name: string;
 
   @IsNotEmpty()
   @IsString()
-  @Length(1, 255)
+  @Length(1, 255, { message: 'Project code must be between 1 and 255 characters' })
+  @Matches(/^[A-Za-z0-9\-]+$/, { message: 'Project code can only contain letters, numbers, and hyphens' })
   code: string;
 
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
+  @Min(0)
   customerId: number;
 
   @IsNotEmpty()
@@ -87,6 +96,7 @@ export class ProjectDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500, { message: 'Project note must be at most 500 characters' })
   note?: string;
 
   @IsNotEmpty()
@@ -114,12 +124,12 @@ export class ProjectDto {
   @IsOptional()
   @IsString()
   @IsUrl()
-  @Length(0, 500)
+  @MaxLength(255, { message: 'Mezon URL must be at most 255 characters' })
   mezonUrl?: string;
 
   @IsOptional()
   @IsString()
-  @Length(0, 255)
+  @MaxLength(255, { message: 'KOMU Channel ID must be at most 255 characters' })
   komuChannelId?: string;
 
   @IsOptional()

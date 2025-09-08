@@ -19,7 +19,7 @@ export class TaskDto {
 
   @IsNotEmpty()
   @IsString()
-  @Length(1, 100)
+  @Length(1, 100, { message: 'Task name must be between 1 and 100 characters' })
   name: string;
 
   @IsNotEmpty()

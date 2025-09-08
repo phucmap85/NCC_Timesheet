@@ -1,4 +1,14 @@
-import { IsInt, IsString, IsNotEmpty, IsOptional, Length, IsNumber, Min } from 'class-validator';
+import { 
+  IsInt, 
+  IsString, 
+  IsNotEmpty, 
+  IsOptional, 
+  Length, 
+  IsNumber, 
+  Min, 
+  Matches, 
+  MaxLength
+} from 'class-validator';
 
 export class CustomerDto {
   @IsOptional()
@@ -7,18 +17,19 @@ export class CustomerDto {
   @Min(0)
   id?: number;
 
-  @IsString()
   @IsNotEmpty()
-  @Length(1, 100)
+  @IsString()
+  @Length(1, 100, { message: 'Name must be between 1 and 100 characters' })
   name: string;
 
-  @IsString()
   @IsNotEmpty()
-  @Length(1, 50)
+  @IsString()
+  @Length(1, 50, { message: 'Code must be between 1 and 50 characters' })
+  @Matches(/^[A-Za-z0-9_-]+$/, { message: 'Code can only contain letters, numbers, underscores, and hyphens' })
   code: string;
 
-  @IsString()
   @IsOptional()
-  @Length(0, 255)
+  @IsString()
+  @MaxLength(255, { message: 'Address must be at most 255 characters' })
   address?: string;
 }
