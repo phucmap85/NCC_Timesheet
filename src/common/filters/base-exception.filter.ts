@@ -7,6 +7,7 @@ import {
   Logger
 } from '@nestjs/common';
 import { Response } from 'express';
+import { QueryFailedError, EntityNotFoundError, CannotCreateEntityIdMapError } from 'typeorm';
 
 @Catch()
 export class BaseExceptionFilter implements ExceptionFilter {
@@ -19,7 +20,17 @@ export class BaseExceptionFilter implements ExceptionFilter {
     let status: number;
     let message: string | string[] | object;
 
-    if (exception instanceof HttpException) {
+    // Check if it's a TypeORM database error
+    if (exception instanceof QueryFailedError || 
+        exception instanceof EntityNotFoundError || 
+        exception instanceof CannotCreateEntityIdMapError) {
+      // Log the actual database error for debugging
+      this.logger.error(`Database Error:`, exception);
+      
+      // Return generic internal server error to hide database details
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'Internal server error';
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const errorResponse = exception.getResponse();
       message = (typeof errorResponse === 'object' && errorResponse !== null)
