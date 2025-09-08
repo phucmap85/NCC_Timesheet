@@ -227,12 +227,6 @@ export class ProjectService {
         const startDate = new Date(startDateWFormat.toISOString().split('T')[0]);
         const endDateWFormat = new Date(new Date(timeEnd).getTime() + 7 * 60 * 60 * 1000);
         const endDate = new Date(endDateWFormat.toISOString().split('T')[0]);
-        const now = new Date();
-        
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-
-        if (startOfStartDate < startOfToday) throw new Error('Start time cannot be earlier than today');
         if (endDate < startDate) throw new Error('End time must be after start time');
 
         const newProject = {
