@@ -45,7 +45,7 @@ export class UserService {
         const branch = await this.repositories.branch.getBranchById(user.branchId);
         
         const roles = await this.repositories.userRole.findAll({ where: { userId: user.id }, relations: ['role'] });
-        const roleNames = roles.map((userRole: UserRole) => userRole.role.name);
+        const roleNames = roles.map((userRole: UserRole) => userRole.role.normalizedName);
 
         const project = await this.repositories.projectUser.findAll({ where: { userId: user.id }, relations: ['project'] });
         const projectIds = project.map((projectUser: ProjectUser) => projectUser.project.id);
@@ -498,6 +498,14 @@ export class UserService {
 
       const user = await this.repositories.user.saveUser(createUser as any);
 
+      // Assign roles to user
+      if (roleNames && roleNames.length > 0) {
+        for (const roleName of roleNames) {
+          const role = await this.repositories.role.getRoleByNormalizedName(roleName) as any;
+          if (role) await this.repositories.userRole.save({ userId: user.id, roleId: role.id });
+        }
+      }
+
       const projectsWithAllUserBelongTo = await this.repositories.project.getProjectsAllUserBelongTo();
       if (projectsWithAllUserBelongTo && projectsWithAllUserBelongTo.length > 0) {
         for (const project of projectsWithAllUserBelongTo) {
@@ -509,7 +517,10 @@ export class UserService {
         }
       }
 
-      return user;
+      return {
+        ...user,
+        "password": undefined
+      };
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -674,7 +685,23 @@ export class UserService {
       user.startDateAt = dateNormalize(updateUser.startDateAt as any) as any;
       user.endDateAt = dateNormalize(updateUser.endDateAt as any) as any;
 
-      return await this.repositories.user.saveUser(user);
+      const savedUser = await this.repositories.user.saveUser(user);
+
+      // Update roles
+      if (roleNames) {
+        const roleIds = await Promise.all(roleNames.map(async (roleName: string) => {
+          const role = await this.repositories.role.getRoleByNormalizedName(roleName) as any;
+          return role ? role.id : null;
+        }));
+
+        const filteredRoleIds = roleIds.filter((id, index, arr) => id !== null && arr.indexOf(id) === index) as number[];
+        await this.repositories.userRole.updateUserRoles(id, filteredRoleIds);
+      }
+
+      return {
+        ...savedUser,
+        "password": undefined
+      }
     } catch (error) {
       throw new BadRequestException(error.message);
     }
