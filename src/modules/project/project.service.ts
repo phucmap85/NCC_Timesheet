@@ -151,8 +151,13 @@ export class ProjectService {
 
       // Validate users
       if (users && users.length > 0) {
-        // Validate users exist in Users
         const userIds = users.map(user => user.userId);
+
+        // Validate no duplicate users
+        const uniqueUserIds = new Set(userIds);
+        if (uniqueUserIds.size !== userIds.length) throw new Error('Duplicate users are not allowed');
+
+        // Validate users exist in Users
         const existingUsers = await this.repositories.user.count({ where: { id: In(userIds) } });
         if (userIds.length !== existingUsers) {
           throw new Error(`Some selected users do not exist`);
@@ -168,9 +173,15 @@ export class ProjectService {
       // Validate tasks exist in Tasks
       if (tasks && tasks.length > 0) {
         const taskIds = tasks.map(task => task.taskId);
-        const existingTasks = await this.repositories.task.count({ where: { id: In(taskIds) } });
+
+        // Validate no duplicate tasks
+        const uniqueTaskIds = new Set(taskIds);
+        if (uniqueTaskIds.size !== taskIds.length) throw new Error('Duplicate tasks are not allowed');
+
+        // Validate tasks exist in Tasks
+        const existingTasks = await this.repositories.task.count({ where: { id: In(taskIds), isDeleted: false } });
         if (taskIds.length !== existingTasks) {
-          throw new Error(`Some selected tasks do not exist`);
+          throw new Error(`Some selected tasks do not exist or are archived`);
         }
       } else {
         throw new Error('At least one task must be selected');
@@ -182,8 +193,13 @@ export class ProjectService {
         const hasShadow = users.some(user => user.type === 2);
         if (!hasShadow) throw new Error('At least one Shadow must be selected to assign target users');
 
-        // Validate target users exist in Users
         const targetUserIds = projectTargetUsers.map(targetUser => targetUser.userId);
+
+        // Validate no duplicate target users
+        const uniqueTargetUserIds = new Set(targetUserIds);
+        if (uniqueTargetUserIds.size !== targetUserIds.length) throw new Error('Duplicate target users are not allowed');
+
+        // Validate target users exist in Users
         const existingTargetUsers = await this.repositories.user.count({ where: { id: In(targetUserIds) } });
         if (targetUserIds.length !== existingTargetUsers) {
           throw new Error(`Some selected target users do not exist`);
