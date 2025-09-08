@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Delete, Query, HttpCode, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Delete, Query, HttpCode, ParseIntPipe, BadGatewayException } from '@nestjs/common';
 import { TaskDto } from 'src/modules/task/task.dto';
 import { TaskService } from 'src/modules/task/task.service';
 import { Permissions } from 'src/common/constants/enum';
@@ -27,14 +27,18 @@ export class TaskController {
   @HasPermissions(Permissions.Admin, Permissions.Admin_Tasks, Permissions.Admin_Tasks_ChangeStatus)
   @HttpCode(200)
   async archiveTask(@Query("Id", ParseIntPipe) id: number): Promise<void> {
-    return this.taskService.changeDeleteStatus(id);
+    return this.taskService.archiveTask(id);
   }
 
   @Post("DeArchive")
   @HasPermissions(Permissions.Admin, Permissions.Admin_Tasks, Permissions.Admin_Tasks_ChangeStatus)
   @HttpCode(200)
   async deArchiveTask(@Body() body: object): Promise<void> {
-    return this.taskService.changeDeleteStatus(body['id']);
+    if (!body['id']) throw new BadGatewayException('Id is required');
+    if (typeof body['id'] !== 'number' || isNaN(body['id']) || body['id'] < 1) {
+      throw new BadGatewayException('Id must be a positive integer');
+    }
+    return this.taskService.deArchiveTask(body['id']);
   }
 
   @Delete("Delete")

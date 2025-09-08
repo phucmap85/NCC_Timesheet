@@ -57,32 +57,29 @@ export class TaskService {
     }
   }
 
-  async changeDeleteStatus(id: number): Promise<void> {
+  async archiveTask(id: number): Promise<void> {
     try {
       const task = await this.repositories.task.getTaskById(id);
-      if (!task) throw new Error(`Task not found`);
+      if (!task) throw new Error(`Task ID ${id} not found`);
 
-      if(task.isDeleted) {
-        try {
-          task.isDeleted = false;
+      if (task.isDeleted) throw new Error(`Task ID ${id} is already archived`);
 
-          await this.repositories.task.saveTask(task);
-        } catch (error) {
-          throw new Error(`Error restoring task ID ${id}`);
-        }
-      } else {
-        try {
-          let temp = { ...task };
+      task.isDeleted = true;
+      await this.repositories.task.saveTask(task);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 
-          await this.repositories.task.removeTask(task);
+  async deArchiveTask(id: number): Promise<void> {
+    try {
+      const task = await this.repositories.task.getTaskById(id);
+      if (!task) throw new Error(`Task ID ${id} not found`);
 
-          temp.isDeleted = true;
+      if (!task.isDeleted) throw new Error(`Task ID ${id} is not archived`);
 
-          await this.repositories.task.saveTask(temp);
-        } catch (error) {
-          throw new Error(`This task ID ${id} is in a project, cannot be archived`);
-        }
-      }
+      task.isDeleted = false;
+      await this.repositories.task.saveTask(task);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -93,11 +90,13 @@ export class TaskService {
       const task = await this.repositories.task.getTaskById(id);
       if (!task) throw new Error(`Task not found`);
 
+      if (!task.isDeleted) throw new Error(`Task ID ${id} must be archived before deletion`);
+
       try {
         return await this.repositories.task.removeTask(task);
       } catch (error) {
         throw new Error(`Task ID ${id} is being used, cannot be deleted`);
-      }      
+      }
     } catch (error) {
       throw new BadRequestException(error.message);
     }
