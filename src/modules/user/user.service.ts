@@ -324,12 +324,24 @@ export class UserService {
             throw new Error(`afternoonWorking must be a positive number`);
           }
 
-          if(item.morningWorking > 12) {
-            throw new Error(`morningWorking must be less than or equal to 12 hours`);
+          if(item.morningWorking > 6) {
+            throw new Error(`morningWorking must be less than or equal to 6 hours`);
           }
-          if(item.afternoonWorking > 12) {
-            throw new Error(`afternoonWorking must be less than or equal to 12 hours`);
+          if(item.afternoonWorking > 6) {
+            throw new Error(`afternoonWorking must be less than or equal to 6 hours`);
           }
+
+          // Validate working hours logic
+          validateWorkingHours(
+            item.morningWorking, morningStartAt, morningEndAt,
+            item.afternoonWorking, afternoonStartAt, afternoonEndAt
+          );
+        }
+
+        // Validate duplicate usernames/emails
+        const usernamesOrEmails = data.map((item: any) => item['username/email']);
+        if (new Set(usernamesOrEmails).size !== usernamesOrEmails.length) {
+          throw new Error('Duplicate username/email found in the file');
         }
 
         // Update working time for each user
@@ -341,17 +353,15 @@ export class UserService {
           const afternoonStartAt = convertExcelTimeToString(item.afternoonStartAt);
           const afternoonEndAt = convertExcelTimeToString(item.afternoonEndAt);
 
-          validateWorkingHours(
-            item.morningWorking, morningStartAt, morningEndAt,
-            item.afternoonWorking, afternoonStartAt, afternoonEndAt
-          );
-
           user.morningWorking = item.morningWorking;
           user.morningStartAt = morningStartAt;
           user.morningEndAt = morningEndAt;
           user.afternoonWorking = item.afternoonWorking;
           user.afternoonStartAt = afternoonStartAt;
           user.afternoonEndAt = afternoonEndAt;
+
+          // Turn off isWorkingTimeDefault
+          user.isWorkingTimeDefault = false;
 
           await this.repositories.user.save(user);
         }
