@@ -114,6 +114,11 @@ export class RoleService {
   ): Promise<RolePermission[]> {
     try {  
       if (!id || !newPermissionKeys) throw new Error('Id and permissions are required');
+
+      // Validate duplicates in newPermissionKeys
+      if (new Set(newPermissionKeys).size !== newPermissionKeys.length) {
+        throw new Error('Duplicate permissions found in the provided list');
+      }
       
       // Validate all permission keys exist
       for (const permissionKey of newPermissionKeys) {
