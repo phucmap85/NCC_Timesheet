@@ -68,29 +68,59 @@ export abstract class BaseRepository<T extends ObjectLiteral> {
         
         switch (item.comparison) {
           case 0: // Equal
-            condition = `${entityAlias}.${item.propertyName} = :${paramName}`;
-            query = query.andWhere(condition, { [paramName]: item.value });
+            if (item.value === null || item.value === undefined) {
+              condition = `${entityAlias}.${item.propertyName} IS NULL`;
+              query = query.andWhere(condition);
+            } else {
+              condition = `${entityAlias}.${item.propertyName} = :${paramName}`;
+              query = query.andWhere(condition, { [paramName]: item.value });
+            }
             break;
           case 1: // Not Equal
-            condition = `${entityAlias}.${item.propertyName} != :${paramName}`;
-            query = query.andWhere(condition, { [paramName]: item.value });
+            if (item.value === null || item.value === undefined) {
+              condition = `${entityAlias}.${item.propertyName} IS NOT NULL`;
+              query = query.andWhere(condition);
+            } else {
+              condition = `${entityAlias}.${item.propertyName} != :${paramName}`;
+              query = query.andWhere(condition, { [paramName]: item.value });
+            }
             break;
           case 2: // Contains (LIKE)
-            condition = `${entityAlias}.${item.propertyName} LIKE :${paramName}`;
-            query = query.andWhere(condition, { [paramName]: `%${item.value}%` });
+            if (item.value === null || item.value === undefined) {
+              condition = `${entityAlias}.${item.propertyName} IS NULL`;
+              query = query.andWhere(condition);
+            } else {
+              condition = `${entityAlias}.${item.propertyName} LIKE :${paramName}`;
+              query = query.andWhere(condition, { [paramName]: `%${item.value}%` });
+            }
             break;
           case 3: // Starts with
-            condition = `${entityAlias}.${item.propertyName} LIKE :${paramName}`;
-            query = query.andWhere(condition, { [paramName]: `${item.value}%` });
+            if (item.value === null || item.value === undefined) {
+              condition = `${entityAlias}.${item.propertyName} IS NULL`;
+              query = query.andWhere(condition);
+            } else {
+              condition = `${entityAlias}.${item.propertyName} LIKE :${paramName}`;
+              query = query.andWhere(condition, { [paramName]: `${item.value}%` });
+            }
             break;
           case 4: // Ends with
-            condition = `${entityAlias}.${item.propertyName} LIKE :${paramName}`;
-            query = query.andWhere(condition, { [paramName]: `%${item.value}` });
+            if (item.value === null || item.value === undefined) {
+              condition = `${entityAlias}.${item.propertyName} IS NULL`;
+              query = query.andWhere(condition);
+            } else {
+              condition = `${entityAlias}.${item.propertyName} LIKE :${paramName}`;
+              query = query.andWhere(condition, { [paramName]: `%${item.value}` });
+            }
             break;
           default:
             // Default to equal comparison
-            condition = `${entityAlias}.${item.propertyName} = :${paramName}`;
-            query = query.andWhere(condition, { [paramName]: item.value });
+            if (item.value === null || item.value === undefined) {
+              condition = `${entityAlias}.${item.propertyName} IS NULL`;
+              query = query.andWhere(condition);
+            } else {
+              condition = `${entityAlias}.${item.propertyName} = :${paramName}`;
+              query = query.andWhere(condition, { [paramName]: item.value });
+            }
         }
       });
     }

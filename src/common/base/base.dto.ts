@@ -24,10 +24,10 @@ export class FilterItemDto {
   @IsNotEmpty()
   propertyName: string;
 
+  @IsOptional()
   @IsNumber()
   @IsInt()
-  @IsNotEmpty()
-  value: number;
+  value?: number;
 
   @IsEnum(ComparisonOperation)
   comparison: ComparisonOperation;
