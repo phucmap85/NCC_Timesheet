@@ -9,6 +9,7 @@ import {
 } from 'src/modules/user/user.dto';
 import { validateWorkingHours } from 'src/common/utils/validators/working-hours.validator';
 import { convertExcelTimeToString } from 'src/common/utils/converters/excel-time.converter';
+import { dateNormalize } from 'src/common/utils/converters/date-normalize.converter';
 import { RepositoryManager } from 'src/common/repositories';
 import { app } from 'src/main';
 import * as bcrypt from 'bcrypt';
@@ -229,6 +230,11 @@ export class UserService {
       if (!allRoleNames.includes(role)) throw new BadRequestException(`Role ${role} does not exist`);
     }
 
+    // Check for duplicate role names
+    if (new Set(roleNames).size !== roleNames.length) {
+      throw new BadRequestException('Duplicate role names are not allowed');
+    }
+
     const roleIds = roleNames
       .map((roleName: string) => {
         const role = allRoles.find((r: any) => r.normalizedName === roleName);
@@ -378,10 +384,10 @@ export class UserService {
       const {
         userName, password, name, surname, emailAddress, phoneNumber,
         positionId, branchId, managerId,
-        isActive, isWorkingTimeDefault,
+        isWorkingTimeDefault, level, beginLevel,
         morningWorking, morningStartAt, morningEndAt,
         afternoonWorking, afternoonStartAt, afternoonEndAt,
-        roleNames
+        roleNames, startDateAt, salaryAt, endDateAt
       } = createUser;
 
       if (await this.repositories.user.getUserByUsername(userName)) {
@@ -411,8 +417,7 @@ export class UserService {
       }
       if (!isWorkingTimeDefault) {
         if (!morningWorking || !morningStartAt || !morningEndAt || 
-            !afternoonWorking || !afternoonStartAt || !afternoonEndAt
-          ) {
+            !afternoonWorking || !afternoonStartAt || !afternoonEndAt) {
           throw new Error('Please provide complete working time details or set isWorkingTimeDefault to true');
         }
         validateWorkingHours(
@@ -432,8 +437,54 @@ export class UserService {
         createUser.afternoonEndAt = branch.afternoonEndAt;
       }
 
+      // Validate date fields
+      const today = dateNormalize(new Date());
+      if (!today) throw new Error('Unable to get current date');
+
+      if (startDateAt) {
+        const startDate = dateNormalize(startDateAt);
+        if (startDate && startDate < today) throw new Error('startDateAt must be after or equal to today');
+      }
+
+      if (endDateAt) {
+        const endDate = dateNormalize(endDateAt);
+        if (endDate && endDate < today) throw new Error('endDateAt must be after or equal to today');
+      }
+
+      if (salaryAt) {
+        const salaryDate = dateNormalize(salaryAt);
+        if (salaryDate && salaryDate < today) throw new Error('salaryAt must be after or equal to today');
+      }
+
+      if (startDateAt && endDateAt) {
+        const startDate = dateNormalize(startDateAt);
+        const endDate = dateNormalize(endDateAt);
+        if (startDate && endDate && startDate >= endDate) throw new Error('startDateAt must be before endDateAt');
+      }
+
+      if (salaryAt) {
+        const salaryDate = dateNormalize(salaryAt);
+        if (startDateAt) {
+          const startDate = dateNormalize(startDateAt);
+          if (salaryDate && startDate && salaryDate < startDate) throw new Error('salaryAt must be after or equal to startDateAt');
+        }
+        if (endDateAt) {
+          const endDate = dateNormalize(endDateAt);
+          if (salaryDate && endDate && salaryDate > endDate) throw new Error('salaryAt must be before or equal to endDateAt');
+        }
+      }
+
+      // level >= beginLevel validation
+      if (level !== undefined && beginLevel !== undefined) {
+        if (level < beginLevel) throw new Error('level must be greater than or equal to beginLevel');
+      }
+
+      // Create user
       createUser.fullName = `${name} ${surname}`;
       createUser.password = await bcrypt.hash(password, 12);
+      createUser.startDateAt = dateNormalize(startDateAt as any) as any;
+      createUser.salaryAt = dateNormalize(salaryAt as any) as any;
+      createUser.endDateAt = dateNormalize(endDateAt as any) as any;
 
       const user = await this.repositories.user.saveUser(createUser as any);
 
@@ -457,55 +508,55 @@ export class UserService {
   async updateUser(updateUser: UpdateUserDto): Promise<object | null> {
     try {
       const {
-        id, userName, password,
+        id, userName,
         name, surname, emailAddress, phoneNumber,
         positionId, branchId, managerId,
+        level, beginLevel,
         isActive, isWorkingTimeDefault,
         morningWorking, morningStartAt, morningEndAt,
         afternoonWorking, afternoonStartAt, afternoonEndAt,
-        roleNames
+        roleNames, startDateAt, salaryAt, endDateAt
       } = updateUser;
 
       const user = await this.repositories.user.getUserById(id);
       if (!user) throw new Error(`User with ID ${id} does not exist`);
 
-      if (userName && userName !== user.userName) {
-        throw new Error('Username cannot be changed');
-      }
+      if (userName && userName !== user.userName) throw new Error('Username cannot be changed');
 
-      if (emailAddress && emailAddress !== user.emailAddress) {
-        if (await this.repositories.user.getUserByEmail(emailAddress)) {
+      if (emailAddress !== undefined && emailAddress !== user.emailAddress) {
+        if (emailAddress && await this.repositories.user.getUserByEmail(emailAddress)) {
           throw new Error(`Email address ${emailAddress} is already taken`);
         }
-        user.emailAddress = emailAddress;
+        user.emailAddress = emailAddress as any;
       }
 
-      if (phoneNumber && phoneNumber !== user.phoneNumber) {
-        if (await this.repositories.user.getUserByPhoneNumber(phoneNumber)) {
+      if (phoneNumber !== undefined && phoneNumber !== user.phoneNumber) {
+        if (phoneNumber && await this.repositories.user.getUserByPhoneNumber(phoneNumber)) {
           throw new Error(`Phone number ${phoneNumber} is already taken`);
         }
-        user.phoneNumber = phoneNumber;
+        user.phoneNumber = phoneNumber as any;
       }
 
-      if (managerId && managerId !== user.managerId) {
-        if (!await this.repositories.user.getUserById(managerId)) {
+      if (managerId !== undefined) {
+        if (managerId && !await this.repositories.user.getUserById(managerId)) {
           throw new Error(`Manager with ID ${managerId} does not exist`);
         }
-        user.managerId = managerId;
+        if (managerId === id) throw new Error('A user cannot be their own manager');
+        user.managerId = managerId as any;
       }
 
-      if (positionId && positionId !== user.positionId) {
-        if (!await this.repositories.position.getPositionById(positionId)) {
+      if (positionId !== undefined) {
+        if (positionId && !await this.repositories.position.getPositionById(positionId)) {
           throw new Error(`Position with ID ${positionId} does not exist`);
         }
-        user.positionId = positionId;
+        user.positionId = positionId as any;
       }
 
-      if (branchId && branchId !== user.branchId) {
-        if (!await this.repositories.branch.getBranchById(branchId)) {
+      if (branchId !== undefined) {
+        if (branchId && !await this.repositories.branch.getBranchById(branchId)) {
           throw new Error(`Branch with ID ${branchId} does not exist`);
         }
-        user.branchId = branchId;
+        user.branchId = branchId as any;
       }
 
       if (roleNames && roleNames.length > 0) {
@@ -550,23 +601,68 @@ export class UserService {
         }
       }
 
-      if (name) user.name = name;
-      if (surname) user.surname = surname;
-      if (name || surname) user.fullName = `${user.name} ${user.surname}`;
-      if (updateUser.fullName) user.fullName = updateUser.fullName;
-      if (updateUser.address !== undefined) user.address = updateUser.address;
-      if (updateUser.sex !== undefined) user.sex = updateUser.sex;
-      if (branchId !== undefined) user.branchId = branchId;
-      if (updateUser.jobTitle !== undefined) user.jobTitle = updateUser.jobTitle;
-      if (updateUser.type !== undefined) user.type = updateUser.type;
-      if (updateUser.level !== undefined) user.level = updateUser.level;
-      if (updateUser.beginLevel !== undefined) user.beginLevel = updateUser.beginLevel;
-      if (updateUser.salary !== undefined) user.salary = updateUser.salary;
-      if (updateUser.salaryAt) user.salaryAt = new Date(updateUser.salaryAt);
-      if (updateUser.allowedLeaveDay !== undefined) user.allowedLeaveDay = updateUser.allowedLeaveDay;
-      if (isActive !== undefined) user.isActive = isActive;
-      if (updateUser.startDateAt) user.startDateAt = new Date(updateUser.startDateAt);
-      if (updateUser.endDateAt) user.endDateAt = new Date(updateUser.endDateAt);
+      // Validate date fields
+      const today = dateNormalize(new Date());
+      if (!today) throw new Error('Unable to get current date');
+
+      if (startDateAt) {
+        const startDate = dateNormalize(startDateAt);
+        if (startDate && startDate < today) throw new Error('startDateAt must be after or equal to today');
+      }
+
+      if (endDateAt) {
+        const endDate = dateNormalize(endDateAt);
+        if (endDate && endDate < today) throw new Error('endDateAt must be after or equal to today');
+      }
+
+      if (salaryAt) {
+        const salaryDate = dateNormalize(salaryAt);
+        if (salaryDate && salaryDate < today) throw new Error('salaryAt must be after or equal to today');
+      }
+
+      const effectiveStartDate = startDateAt ? dateNormalize(startDateAt) : (user.startDateAt ? dateNormalize(user.startDateAt) : null);
+      const effectiveEndDate = endDateAt ? dateNormalize(endDateAt) : (user.endDateAt ? dateNormalize(user.endDateAt) : null);
+      const effectiveSalaryDate = salaryAt ? dateNormalize(salaryAt) : (user.salaryAt ? dateNormalize(user.salaryAt) : null);
+
+      if (effectiveStartDate && effectiveEndDate) {
+        if (effectiveStartDate >= effectiveEndDate) {
+          throw new Error('startDateAt must be before endDateAt');
+        }
+      }
+
+      if (effectiveSalaryDate) {
+        if (effectiveStartDate && effectiveSalaryDate < effectiveStartDate) {
+          throw new Error('salaryAt must be after or equal to startDateAt');
+        }
+        if (effectiveEndDate && effectiveSalaryDate > effectiveEndDate) {
+          throw new Error('salaryAt must be before or equal to endDateAt');
+        }
+      }
+
+      // level >= beginLevel validation
+      const effectiveLevel = level !== undefined ? level : user.level;
+      const effectiveBeginLevel = beginLevel !== undefined ? beginLevel : user.beginLevel;
+      if (effectiveLevel !== undefined && effectiveBeginLevel !== undefined) {
+        if (effectiveLevel < effectiveBeginLevel) throw new Error('level must be greater than or equal to beginLevel');
+      }
+
+      // Update user
+      user.name = name;
+      user.surname = surname;
+      user.fullName = updateUser.fullName !== undefined ? updateUser.fullName : `${user.name || ''} ${user.surname || ''}`.trim();
+      user.address = updateUser.address as any;
+      user.sex = updateUser.sex;
+      user.branchId = branchId as any;
+      user.jobTitle = updateUser.jobTitle as any;
+      user.type = updateUser.type as any;
+      user.level = updateUser.level as any;
+      user.beginLevel = updateUser.beginLevel as any;
+      user.salary = updateUser.salary as any;
+      user.salaryAt = dateNormalize(updateUser.salaryAt as any) as any;
+      user.allowedLeaveDay = updateUser.allowedLeaveDay as any;
+      user.isActive = isActive !== undefined ? isActive : user.isActive;
+      user.startDateAt = dateNormalize(updateUser.startDateAt as any) as any;
+      user.endDateAt = dateNormalize(updateUser.endDateAt as any) as any;
 
       return await this.repositories.user.saveUser(user);
     } catch (error) {

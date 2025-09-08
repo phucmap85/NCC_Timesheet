@@ -32,6 +32,15 @@ export const validateWorkingHours = (
         throw new Error(`Afternoon working time (${afternoonWorking}h) does not match duration between ${afternoonStartAt} and ${afternoonEndAt}`);
       }
     }
+
+    // Check that morning is before afternoon
+    if (morningEndAt && afternoonStartAt) {
+      const morningEnd = parseTime(morningEndAt);
+      const afternoonStart = parseTime(afternoonStartAt);
+      if (morningEnd !== null && afternoonStart !== null && morningEnd >= afternoonStart) {
+        throw new Error(`Morning end time (${morningEndAt}) must be before afternoon start time (${afternoonStartAt})`);
+      }
+    }
   } catch (error) {
     throw new Error(error.message);
   }
